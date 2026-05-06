@@ -1,0 +1,3 @@
+.env
+MoteurCorrelation/.venv
+Api_ingestion/.venv
