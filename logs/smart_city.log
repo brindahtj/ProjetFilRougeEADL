@@ -1,0 +1,21 @@
+2026-05-06 16:58:20,677 [INFO] Cycle 1/5
+2026-05-06 16:58:20,815 [ERROR] Erreur OpenAQ : 401 Client Error: Unauthorized for url: https://api.openaq.org/v3/locations?country=FR&limit=100
+2026-05-06 16:58:20,987 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A48.8566%2C2.3522%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 16:58:21,082 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A45.764%2C4.8357%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 16:58:21,238 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A43.2965%2C5.3698%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 16:58:21,240 [WARNING] Données insuffisantes pour calculer la corrélation
+2026-05-06 16:58:21,241 [INFO] Pollution=0 | Trafic=0
+2026-05-06 16:59:21,242 [INFO] Cycle 2/5
+2026-05-06 16:59:21,376 [ERROR] Erreur OpenAQ : 401 Client Error: Unauthorized for url: https://api.openaq.org/v3/locations?country=FR&limit=100
+2026-05-06 16:59:21,501 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A48.8566%2C2.3522%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 16:59:21,638 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A45.764%2C4.8357%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 16:59:21,761 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A43.2965%2C5.3698%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 16:59:21,765 [WARNING] Données insuffisantes pour calculer la corrélation
+2026-05-06 16:59:21,766 [INFO] Pollution=0 | Trafic=0
+2026-05-06 17:00:21,768 [INFO] Cycle 3/5
+2026-05-06 17:00:21,917 [ERROR] Erreur OpenAQ : 401 Client Error: Unauthorized for url: https://api.openaq.org/v3/locations?country=FR&limit=100
+2026-05-06 17:00:22,046 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A48.8566%2C2.3522%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 17:00:22,199 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A45.764%2C4.8357%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 17:00:22,323 [ERROR] Erreur HERE API : 401 Client Error: Unauthorized for url: https://data.traffic.hereapi.com/v7/flow?in=circle%3A43.2965%2C5.3698%3Br%3D5000&locationReferencing=shape&apiKey=votre_cle_here_api
+2026-05-06 17:00:22,326 [WARNING] Données insuffisantes pour calculer la corrélation
+2026-05-06 17:00:22,327 [INFO] Pollution=0 | Trafic=0
