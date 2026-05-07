@@ -1,5 +1,17 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
+# ENV
+.env
+
+# DATA
+data/
+
+# LOGS
+logs/
+
+# PYTHON CACHE
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
