@@ -1,6 +1,5 @@
 import pika
 import json
-import sys
 
 RABBIT_HOST = "localhost"
 RABBIT_PORT = 5672
@@ -8,9 +7,15 @@ RABBIT_USER = "guest"
 RABBIT_PASS = "guest"
 RABBIT_VHOST = "/"
 EXCHANGE = "logs"
+QUEUE = "moteur_correlation"
 
-def send_message(trafic, no2):
-    """Envoie un message JSON au publisher."""
+def send_message(message_data, routing_key="pollution"):
+    """Envoie un message JSON au broker RabbitMQ.
+
+    Args:
+        message_data: dict, list ou str à sérialiser en JSON
+        routing_key: clé de routage (défaut: 'pollution')
+    """
     creds = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
     params = pika.ConnectionParameters(
         host=RABBIT_HOST,
@@ -22,23 +27,23 @@ def send_message(trafic, no2):
     conn = pika.BlockingConnection(params)
     ch = conn.channel()
     ch.exchange_declare(exchange=EXCHANGE, exchange_type="fanout", durable=True)
+    ch.queue_declare(queue=QUEUE, durable=True)
+    ch.queue_bind(exchange=EXCHANGE, queue=QUEUE)
 
-    # Créer le message JSON
-    message = json.dumps({
-        "trafic": trafic,
-        "no2": no2
-    })
+    # Sérialiser en JSON si nécessaire
+    if isinstance(message_data, (dict, list)):
+        message = json.dumps(message_data)
+    else:
+        message = str(message_data)
 
-    ch.basic_publish(exchange=EXCHANGE, routing_key="", body=message)
-    print(f"Message envoyé: {message}")
+    ch.basic_publish(exchange=EXCHANGE, routing_key=routing_key, body=message)
+    print(f"✅ Message envoyé: {message[:100]}...")
 
     conn.close()
 
 if __name__ == "__main__":
-    # Utilisation: python publisher.py 45.5 120.3
-    if len(sys.argv) == 3:
-        trafic = float(sys.argv[1])
-        no2 = float(sys.argv[2])
-        send_message(trafic, no2)
+    import sys
+    if len(sys.argv) > 1:
+        send_message(sys.argv[1])
     else:
-        print("Usage: python publisher.py <trafic> <no2>")
+        print("Usage: python publisher.py '<json_message>'")

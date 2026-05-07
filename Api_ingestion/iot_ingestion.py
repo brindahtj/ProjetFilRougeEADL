@@ -256,41 +256,6 @@ def save_traffic_csv(readings):
                 row["jam_factor"] = row.pop("jamFactor")
             writer.writerow(row)
 
-# =========================================================
-# CORRELATION
-# =========================================================
-
-def compute_correlation(pollution_readings, traffic_readings):
-    if not pollution_readings or not traffic_readings:
-        log.warning("Données insuffisantes pour calculer la corrélation")
-        return None
-
-    pollution_df = pd.DataFrame([asdict(r) for r in pollution_readings])
-    traffic_df = pd.DataFrame([asdict(r) for r in traffic_readings])
-
-    if pollution_df.empty or traffic_df.empty:
-        log.warning("DataFrames vides")
-        return None
-
-    no2_df = pollution_df[pollution_df["pollutant"] == "no2"]
-    if no2_df.empty:
-        log.info("Aucune mesure NO2 pour la corrélation")
-        return None
-
-    pollution_grouped = no2_df.groupby("city")["value"].mean()
-    traffic_grouped = traffic_df.groupby("city")["jam_factor"].mean()
-
-    merged = pd.concat([pollution_grouped, traffic_grouped], axis=1, join="inner").dropna()
-    merged.columns = ["avg_no2", "avg_jam"]
-
-    if merged.empty:
-        log.info("Aucune ville en commun pour la corrélation")
-        return None
-
-    correlation = merged["avg_no2"].corr(merged["avg_jam"])
-    log.info("\n===== CORRÉLATION =====\n%s", merged)
-    log.info("Corrélation NO2 / Trafic = %.4f", correlation if correlation is not None else float("nan"))
-    return correlation
 
 # =========================================================
 # PIPELINE
@@ -298,7 +263,6 @@ def compute_correlation(pollution_readings, traffic_readings):
 
 import json
 from publisher import send_message
-
 def run_pipeline(n_cycles=5, interval_sec=60):
     log.info("🚀 SMART CITY PIPELINE")
     for cycle in range(1, n_cycles + 1):
@@ -308,18 +272,13 @@ def run_pipeline(n_cycles=5, interval_sec=60):
 
         if pollution:
             save_pollution_csv(pollution)
-            # Publier les données pollution
-            message = json.dumps([asdict(r) for r in pollution])
-            send_message(message)
+            send_message([asdict(r) for r in pollution], routing_key="pollution")
+            log.info("✅ %d mesures pollution publiées", len(pollution))
 
         if traffic:
             save_traffic_csv(traffic)
-            # Publier les données trafic
-            message = json.dumps([asdict(r) for r in traffic])
-            send_message(message)
-
-        correlation = compute_correlation(pollution, traffic)
-        log.info("Pollution=%d | Trafic=%d", len(pollution), len(traffic))
+            send_message([asdict(r) for r in traffic], routing_key="traffic")
+            log.info("✅ %d mesures trafic publiées", len(traffic))
 
         if cycle < n_cycles:
             time.sleep(interval_sec)
