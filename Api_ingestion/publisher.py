@@ -1,44 +1,44 @@
-# python
-import os
-import sys
-import time
 import pika
+import json
+import sys
 
-RABBIT_HOST = os.getenv("RABBIT_HOST", "localhost")
-RABBIT_PORT = int(os.getenv("RABBIT_PORT", "5672"))
-RABBIT_USER = os.getenv("RABBIT_USER", "guest")
-RABBIT_PASS = os.getenv("RABBIT_PASS", "guest")
-RABBIT_VHOST = os.getenv("RABBIT_VHOST", "/")
-RETRIES = int(os.getenv("RABBIT_RETRIES", "3"))
-RETRY_DELAY = float(os.getenv("RABBIT_RETRY_DELAY", "2"))
+RABBIT_HOST = "localhost"
+RABBIT_PORT = 5672
+RABBIT_USER = "guest"
+RABBIT_PASS = "guest"
+RABBIT_VHOST = "/"
+EXCHANGE = "logs"
 
-def publish(message: str):
+def send_message(trafic, no2):
+    """Envoie un message JSON au publisher."""
     creds = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
     params = pika.ConnectionParameters(
         host=RABBIT_HOST,
         port=RABBIT_PORT,
         virtual_host=RABBIT_VHOST,
         credentials=creds,
-        heartbeat=600,
-        blocked_connection_timeout=300,
     )
 
-    last_exc = None
-    for attempt in range(1, RETRIES + 1):
-        try:
-            conn = pika.BlockingConnection(params)
-            ch = conn.channel()
-            ch.exchange_declare(exchange="logs", exchange_type="fanout", durable=True)
-            ch.basic_publish(exchange="logs", routing_key="", body=message.encode("utf-8"))
-            print(f" [x] Sent {message}")
-            conn.close()
-            return
-        except Exception as e:
-            last_exc = e
-            print(f"Publish failed (attempt {attempt}/{RETRIES}): {e}")
-            time.sleep(RETRY_DELAY)
-    raise RuntimeError("Unable to publish after retries") from last_exc
+    conn = pika.BlockingConnection(params)
+    ch = conn.channel()
+    ch.exchange_declare(exchange=EXCHANGE, exchange_type="fanout", durable=True)
+
+    # Créer le message JSON
+    message = json.dumps({
+        "trafic": trafic,
+        "no2": no2
+    })
+
+    ch.basic_publish(exchange=EXCHANGE, routing_key="", body=message)
+    print(f"Message envoyé: {message}")
+
+    conn.close()
 
 if __name__ == "__main__":
-    msg = " ".join(sys.argv[1:]) or "Hello World!"
-    publish(msg)
+    # Utilisation: python publisher.py 45.5 120.3
+    if len(sys.argv) == 3:
+        trafic = float(sys.argv[1])
+        no2 = float(sys.argv[2])
+        send_message(trafic, no2)
+    else:
+        print("Usage: python publisher.py <trafic> <no2>")
