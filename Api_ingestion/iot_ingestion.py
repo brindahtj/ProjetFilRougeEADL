@@ -297,7 +297,7 @@ def compute_correlation(pollution_readings, traffic_readings):
 # =========================================================
 
 import json
-from publisher import publish
+from publisher import send_message
 
 def run_pipeline(n_cycles=5, interval_sec=60):
     log.info("🚀 SMART CITY PIPELINE")
@@ -310,13 +310,13 @@ def run_pipeline(n_cycles=5, interval_sec=60):
             save_pollution_csv(pollution)
             # Publier les données pollution
             message = json.dumps([asdict(r) for r in pollution])
-            publish(message)
+            send_message(message)
 
         if traffic:
             save_traffic_csv(traffic)
             # Publier les données trafic
             message = json.dumps([asdict(r) for r in traffic])
-            publish(message)
+            send_message(message)
 
         correlation = compute_correlation(pollution, traffic)
         log.info("Pollution=%d | Trafic=%d", len(pollution), len(traffic))
