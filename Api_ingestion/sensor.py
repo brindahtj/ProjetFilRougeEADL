@@ -19,10 +19,12 @@ class Sensor:
     def set_state(self, state: SensorState) -> None:
         self.state = state
 
-    def update_anomalies(self, count: int) -> None:
-        if count < 0:
-            raise SensorError("Le nombre d'anomalies ne peut pas être négatif.")
-        self.anomalies_count = count
+    # def update_anomalies(self, count: int) -> None:
+    #     if count < 0:
+    #         raise SensorError("Le nombre d'anomalies ne peut pas être négatif.")
+    #     self.anomalies_count = count
+    #     self.state.handle_anomalies(self)
+    def evaluate_state(self) -> None:
         self.state.handle_anomalies(self)
 
     def get_state_name(self) -> str:
