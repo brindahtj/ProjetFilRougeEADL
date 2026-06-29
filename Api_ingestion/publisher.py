@@ -4,7 +4,7 @@ import pika
 
 from Api_ingestion.config import (
     EXCHANGE,
-    QUEUE,
+    RABBIT_QUEUE,
     RABBIT_HOST,
     RABBIT_PASS,
     RABBIT_PORT,

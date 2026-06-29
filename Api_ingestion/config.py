@@ -7,18 +7,18 @@ load_dotenv()
 
 OPENAQ_BASE_URL = "https://api.openaq.org/v3"
 HERE_TRAFFIC_URL = "https://data.traffic.hereapi.com/v7/flow"
-HERE_API_KEY = os.getenv("HERE_API_KEY", "VOTRE_API_KEY_HERE")
+TRAFFIC_API_KEY = os.getenv("TRAFFIC_API_KEY")
 
 OUTPUT_DIR = Path("data")
 LOG_DIR = Path("logs")
 
-RABBIT_HOST = os.getenv("RABBIT_HOST", "localhost")
-RABBIT_PORT = int(os.getenv("RABBIT_PORT", "5672"))
-RABBIT_USER = os.getenv("RABBIT_USER", "guest")
-RABBIT_PASS = os.getenv("RABBIT_PASS", "guest")
-RABBIT_VHOST = os.getenv("RABBIT_VHOST", "/")
-EXCHANGE = os.getenv("RABBIT_EXCHANGE", "logs")
-QUEUE = os.getenv("RABBIT_QUEUE", "moteur_correlation")
+RABBIT_HOST = os.getenv("RABBIT_HOST")
+RABBIT_PORT = int(os.getenv("RABBIT_PORT"))
+RABBIT_USER = os.getenv("RABBIT_USER")
+RABBIT_PASS = os.getenv("RABBIT_PASS")
+RABBIT_VHOST = os.getenv("RABBIT_VHOST")
+EXCHANGE = os.getenv("RABBIT_EXCHANGE")
+RABBIT_QUEUE = os.getenv("RABBIT_QUEUE")
 
 ZONES = [
     {"name": "Paris", "lat": 48.8566, "lon": 2.3522},
