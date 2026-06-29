@@ -1,10 +1,12 @@
 import logging
-import requests
-from datetime import datetime
 from abc import ABC, abstractmethod
+from datetime import datetime
 
-from Api_ingestion.config import OPENAQ_BASE_URL, HERE_TRAFFIC_URL, HERE_API_KEY, ZONES
+import requests
+
+from Api_ingestion.config import HERE_API_KEY, HERE_TRAFFIC_URL, OPENAQ_BASE_URL, ZONES
 from Api_ingestion.domain import PollutionReading, TrafficReading
+from Api_ingestion.exceptions import ApiClientError
 
 log = logging.getLogger(__name__)
 
@@ -33,8 +35,7 @@ class OpenAQClient(DataSourceClient):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as exc:
-            log.error("Erreur OpenAQ : %s", exc)
-            return None
+            raise ApiClientError(f"Erreur OpenAQ : {exc}") from exc
 
     def extract_readings(self):
         data = self.fetch_locations()
@@ -72,17 +73,20 @@ class OpenAQClient(DataSourceClient):
             if pollutant not in self.ALLOWED_POLLUTANTS or value is None:
                 continue
 
-            readings.append(
-                PollutionReading(
-                    city=location.get("city", "Unknown"),
-                    pollutant=pollutant,
-                    value=float(value),
-                    unit=unit or "",
-                    latitude=float(latitude),
-                    longitude=float(longitude),
-                    timestamp=timestamp or datetime.utcnow().isoformat(),
+            try:
+                readings.append(
+                    PollutionReading(
+                        city=location.get("city", "Unknown"),
+                        pollutant=pollutant,
+                        value=float(value),
+                        unit=unit or "",
+                        latitude=float(latitude),
+                        longitude=float(longitude),
+                        timestamp=timestamp or datetime.utcnow().isoformat(),
+                    )
                 )
-            )
+            except (TypeError, ValueError) as exc:
+                raise ApiClientError(f"Donnée OpenAQ invalide : {exc}") from exc
 
         return readings
 
@@ -126,8 +130,7 @@ class HereTrafficClient(DataSourceClient):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as exc:
-            log.error("Erreur HERE API : %s", exc)
-            return None
+            raise ApiClientError(f"Erreur HERE API : {exc}") from exc
 
     def extract_readings(self):
         readings = []
@@ -151,7 +154,7 @@ class HereTrafficClient(DataSourceClient):
                             timestamp=datetime.utcnow().isoformat(),
                         )
                     )
-                except (TypeError, ValueError):
-                    continue
+                except (TypeError, ValueError) as exc:
+                    raise ApiClientError(f"Donnée HERE invalide : {exc}") from exc
 
         return readings
