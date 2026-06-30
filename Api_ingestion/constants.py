@@ -55,3 +55,10 @@ TRAFFIC_HISTORY_MIN_SIZE = 5  # minimum de mesures historiques pour calcul
 NO2_WARNING = 100  # seuil alerte warning
 NO2_CRITICAL = 200  # seuil alerte critical
 
+# Détection "au-dessus de la moyenne"
+TRAFFIC_ABOVE_MEAN_FACTOR = 1.20      # ex: 20% au-dessus de la moyenne déclenche alert
+TRAFFIC_ABOVE_MEAN_STD_MULT = 1.5     # ou mean + 1.5 * std
+
+POLLUTION_ABOVE_MEAN_FACTOR = 1.20    # idem pour NO2
+POLLUTION_ABOVE_MEAN_STD_MULT = 1.5
+HISTORY_MIN_FOR_STATS = 5             # minimum observations pour calculer mean/std

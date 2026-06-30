@@ -117,122 +117,171 @@ class SmartCityPipeline:
 
         log.info("🏁 Pipeline terminé")
 
-    def _detect_pollution_alerts(self, readings: list) -> list:
-        """Détecte les alertes pollution (NO2)."""
-        alerts = []
-        for reading in readings:
-            if reading.pollutant.lower() == "no2":
-                if reading.value >= NO2_CRITICAL:
-                    alerts.append(
-                        {
-                            "type": "pollution",
-                            "level": "CRITICAL",
-                            "pollutant": "NO2",
-                            "city": reading.city,
-                            "value": reading.value,
-                            "unit": reading.unit,
-                            "timestamp": reading.timestamp,
-                        }
-                    )
-                elif reading.value >= NO2_WARNING:
-                    alerts.append(
-                        {
-                            "type": "pollution",
-                            "level": "WARNING",
-                            "pollutant": "NO2",
-                            "city": reading.city,
-                            "value": reading.value,
-                            "unit": reading.unit,
-                            "timestamp": reading.timestamp,
-                        }
-                    )
-        return alerts
+from statistics import mean, stdev
+from Api_ingestion.constants import (
+    TRAFFIC_Q_FIXED_WARNING,
+    TRAFFIC_Q_FIXED_CRITICAL,
+    TRAFFIC_HISTORY_MIN_SIZE,
+    TRAFFIC_ABOVE_MEAN_FACTOR,
+    TRAFFIC_ABOVE_MEAN_STD_MULT,
+    POLLUTION_ABOVE_MEAN_FACTOR,
+    POLLUTION_ABOVE_MEAN_STD_MULT,
+    HISTORY_MIN_FOR_STATS,
+    NO2_WARNING,
+    NO2_CRITICAL,
+)
 
-    def _detect_traffic_alerts(self, current_readings: list) -> list:
-        """Détecte les alertes trafic basées sur percentile et seuil fixe."""
-        alerts = []
+def _detect_traffic_alerts(self, current_readings: list) -> list:
+    """Détecte les alertes trafic basées sur moyenne+facteur, std, et seuils fixes/percentiles."""
+    alerts = []
 
-        for reading in current_readings:
-            # Récupérer l'historique pour ce tronçon
-            section_history = [
-                r for r in self.traffic_history if r.section_id == reading.section_id
-            ]
+    for reading in current_readings:
+        section_history = [r for r in self.traffic_history if r.section_id == reading.section_id]
+        q_values = [r.q for r in section_history]
 
-            if len(section_history) < TRAFFIC_HISTORY_MIN_SIZE:
-                # Pas assez de données historiques, utiliser seuil fixe
-                if reading.q >= TRAFFIC_Q_FIXED_CRITICAL:
-                    alerts.append(
-                        {
-                            "type": "traffic",
-                            "level": "CRITICAL",
-                            "street": reading.street,
-                            "section_id": reading.section_id,
-                            "q": reading.q,
-                            "reason": "seuil_fixe",
-                            "timestamp": reading.timestamp,
-                        }
-                    )
-                elif reading.q >= TRAFFIC_Q_FIXED_WARNING:
-                    alerts.append(
-                        {
-                            "type": "traffic",
-                            "level": "WARNING",
-                            "street": reading.street,
-                            "section_id": reading.section_id,
-                            "q": reading.q,
-                            "reason": "seuil_fixe",
-                            "timestamp": reading.timestamp,
-                        }
-                    )
-            else:
-                # Calculer percentiles
-                q_values = sorted([r.q for r in section_history])
-                avg_q = mean(q_values)
+        # Si on a assez d'historique pour stats
+        if len(q_values) >= HISTORY_MIN_FOR_STATS:
+            avg_q = mean(q_values)
+            try:
+                sd_q = stdev(q_values)
+            except Exception:
+                sd_q = 0.0
 
-                p80_idx = int(len(q_values) * TRAFFIC_Q_PERCENTILE_WARNING)
-                p90_idx = int(len(q_values) * TRAFFIC_Q_PERCENTILE_CRITICAL)
+            # règle 1 : au-dessus de la moyenne * facteur
+            above_factor = reading.q >= avg_q * TRAFFIC_ABOVE_MEAN_FACTOR
+            # règle 2 : au-dessus de mean + k * std
+            above_std = sd_q > 0 and reading.q >= avg_q + TRAFFIC_ABOVE_MEAN_STD_MULT * sd_q
 
-                p80 = q_values[min(p80_idx, len(q_values) - 1)]
-                p90 = q_values[min(p90_idx, len(q_values) - 1)]
+            if above_factor or above_std:
+                # définir niveau : CRITICAL si très au-dessus (ex: > mean + 2*std) sinon WARNING
+                level = "CRITICAL" if (sd_q and reading.q >= avg_q + 2 * sd_q) else "WARNING"
+                alerts.append({
+                    "type": "traffic",
+                    "level": level,
+                    "street": reading.street,
+                    "section_id": reading.section_id,
+                    "q": reading.q,
+                    "q_avg": round(avg_q, 2),
+                    "q_std": round(sd_q, 2),
+                    "reason": "above_mean",
+                    "timestamp": reading.timestamp,
+                })
+                # skip other checks for this reading
+                continue
 
-                # Comparer mesure actuelle
-                if reading.q >= p90 or reading.q >= TRAFFIC_Q_FIXED_CRITICAL:
-                    alerts.append(
-                        {
-                            "type": "traffic",
-                            "level": "CRITICAL",
-                            "street": reading.street,
-                            "section_id": reading.section_id,
-                            "q": reading.q,
-                            "q_avg": round(avg_q, 2),
-                            "p80": round(p80, 2),
-                            "p90": round(p90, 2),
-                            "reason": "percentile_90"
-                            if reading.q >= p90
-                            else "seuil_fixe",
-                            "timestamp": reading.timestamp,
-                        }
-                    )
-                elif reading.q >= p80 or reading.q >= TRAFFIC_Q_FIXED_WARNING:
-                    alerts.append(
-                        {
-                            "type": "traffic",
-                            "level": "WARNING",
-                            "street": reading.street,
-                            "section_id": reading.section_id,
-                            "q": reading.q,
-                            "q_avg": round(avg_q, 2),
-                            "p80": round(p80, 2),
-                            "p90": round(p90, 2),
-                            "reason": "percentile_80"
-                            if reading.q >= p80
-                            else "seuil_fixe",
-                            "timestamp": reading.timestamp,
-                        }
-                    )
+        # Si pas assez d'historique ou pas déclenché ci‑dessus, retomber sur seuils fixes
+        if reading.q >= TRAFFIC_Q_FIXED_CRITICAL:
+            alerts.append({
+                "type": "traffic",
+                "level": "CRITICAL",
+                "street": reading.street,
+                "section_id": reading.section_id,
+                "q": reading.q,
+                "reason": "fixed_threshold",
+                "timestamp": reading.timestamp,
+            })
+        elif reading.q >= TRAFFIC_Q_FIXED_WARNING:
+            alerts.append({
+                "type": "traffic",
+                "level": "WARNING",
+                "street": reading.street,
+                "section_id": reading.section_id,
+                "q": reading.q,
+                "reason": "fixed_threshold",
+                "timestamp": reading.timestamp,
+            })
 
-        return alerts
+    return alerts
 
+
+def _detect_pollution_alerts(self, readings: list) -> list:
+    """Détecte alertes pollution NO2 basées sur moyenne+facteur/std et seuils fixes."""
+    alerts = []
+
+    for reading in readings:
+        if reading.pollutant.lower() != "no2":
+            # pour l'instant on n'applique la règle moyenne qu'à NO2 (vous pouvez étendre)
+            if reading.value >= NO2_CRITICAL:
+                alerts.append({
+                    "type": "pollution",
+                    "level": "CRITICAL",
+                    "pollutant": reading.pollutant,
+                    "city": reading.city,
+                    "zone": getattr(reading, "zone", None),
+                    "value": reading.value,
+                    "reason": "fixed_threshold",
+                    "timestamp": reading.timestamp,
+                })
+            elif reading.value >= NO2_WARNING:
+                alerts.append({
+                    "type": "pollution",
+                    "level": "WARNING",
+                    "pollutant": reading.pollutant,
+                    "city": reading.city,
+                    "zone": getattr(reading, "zone", None),
+                    "value": reading.value,
+                    "reason": "fixed_threshold",
+                    "timestamp": reading.timestamp,
+                })
+            continue
+
+        # historique pollution pour même city+zone (ou sensor si vous avez id)
+        hist = [
+            r.value for r in getattr(self, "pollution_history", [])
+            if r.city == reading.city and getattr(r, "zone", None) == getattr(reading, "zone", None) and r.pollutant.lower() == "no2"
+        ]
+
+        if len(hist) >= HISTORY_MIN_FOR_STATS:
+            avg_v = mean(hist)
+            try:
+                sd_v = stdev(hist)
+            except Exception:
+                sd_v = 0.0
+
+            above_factor = reading.value >= avg_v * POLLUTION_ABOVE_MEAN_FACTOR
+            above_std = sd_v > 0 and reading.value >= avg_v + POLLUTION_ABOVE_MEAN_STD_MULT * sd_v
+
+            if above_factor or above_std:
+                level = "CRITICAL" if (sd_v and reading.value >= avg_v + 2 * sd_v) else "WARNING"
+                alerts.append({
+                    "type": "pollution",
+                    "level": level,
+                    "pollutant": "NO2",
+                    "city": reading.city,
+                    "zone": getattr(reading, "zone", None),
+                    "value": reading.value,
+                    "value_avg": round(avg_v, 2),
+                    "value_std": round(sd_v, 2),
+                    "reason": "above_mean",
+                    "timestamp": reading.timestamp,
+                })
+                continue
+
+        # retomber sur seuils fixes si pas d'historique suffisant
+        if reading.value >= NO2_CRITICAL:
+            alerts.append({
+                "type": "pollution",
+                "level": "CRITICAL",
+                "pollutant": "NO2",
+                "city": reading.city,
+                "zone": getattr(reading, "zone", None),
+                "value": reading.value,
+                "reason": "fixed_threshold",
+                "timestamp": reading.timestamp,
+            })
+        elif reading.value >= NO2_WARNING:
+            alerts.append({
+                "type": "pollution",
+                "level": "WARNING",
+                "pollutant": "NO2",
+                "city": reading.city,
+                "zone": getattr(reading, "zone", None),
+                "value": reading.value,
+                "reason": "fixed_threshold",
+                "timestamp": reading.timestamp,
+            })
+
+    return alerts
 
 def run_pipeline(n_cycles=5, interval_sec=60):
     SmartCityPipeline().run(n_cycles=n_cycles, interval_sec=interval_sec)
