@@ -4,16 +4,13 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 from Api_ingestion.config import (
-    TRAFFIC_API_KEY,
-    HERE_TRAFFIC_URL,
+    AIR_API_KEY,
     OPENAQ_BASE_URL,
-    ZONES,
+    OPENAQ_COUNTRY,
+    PARIS_TRAFFIC_BASE_URL,
+    PARIS_TRAFFIC_LIMIT,
 )
-from Api_ingestion.constants import (
-    ALLOWED_POLLUTANTS,
-    MIN_ANOMALIES_CRITICAL,
-    MIN_ANOMALIES_WARNING,
-)
+from Api_ingestion.constants import ALLOWED_POLLUTANTS
 from Api_ingestion.domain import PollutionReading, TrafficReading
 from Api_ingestion.exceptions import ApiClientError, DataValidationError
 from Api_ingestion.http_client import HttpClient
@@ -104,19 +101,22 @@ class OpenAQClient(DataSourceClient):
     def __init__(
         self,
         base_url: str = OPENAQ_BASE_URL,
-        country: str = "FR",
+        api_key: str = AIR_API_KEY,
+        country: str = OPENAQ_COUNTRY,
         limit: int = 100,
         timeout: int = 10,
     ):
         """
         Args:
             base_url: URL de base de l'API OpenAQ
+            api_key: Clé API OpenAQ
             country: Code pays ISO (ex: "FR")
             limit: Nombre max de locations par requête
             timeout: Timeout en secondes
         """
         self.country = country
         self.limit = limit
+        self.api_key = api_key
         self.http_client = HttpClient(base_url, timeout=timeout)
         self.parser = PollutionDataParser()
 
@@ -161,13 +161,11 @@ class OpenAQClient(DataSourceClient):
         """Extrait les lectures d'une location."""
         readings = []
 
-        # Récupère les coordonnées
         coordinates = location.get("coordinates") or {}
         latitude = coordinates.get("latitude") or 0.0
         longitude = coordinates.get("longitude") or 0.0
         city = location.get("city", "Unknown")
 
-        # Récupère les capteurs (structure varie selon l'API)
         sensors = (
             location.get("sensors")
             or location.get("parameters")
@@ -226,95 +224,84 @@ class OpenAQClient(DataSourceClient):
             raise DataValidationError(f"Conversion de type échouée : {exc}") from exc
 
 
-class HereTrafficClient(DataSourceClient):
+class ParisTrafficClient(DataSourceClient):
     """
-    Client pour l'API HERE Traffic.
+    Client pour l'API Paris OpenData - Comptages routiers permanents.
 
-    Récupère les données de trafic pour les zones configurées.
+    Récupère les données de trafic pour Paris.
     """
 
     def __init__(
         self,
-        base_url: str = HERE_TRAFFIC_URL,
-        api_key: str = TRAFFIC_API_KEY,
+        base_url: str = PARIS_TRAFFIC_BASE_URL,
+        limit: int = PARIS_TRAFFIC_LIMIT,
         timeout: int = 10,
     ):
         """
         Args:
-            base_url: URL de base de l'API HERE
-            api_key: Clé API HERE
+            base_url: URL de base de l'API Paris
+            limit: Nombre max de records par requête
             timeout: Timeout en secondes
         """
-        self.api_key = api_key
+        self.limit = limit
         self.http_client = HttpClient(base_url, timeout=timeout)
 
     def extract_readings(self) -> List[TrafficReading]:
         """
-        Récupère et parse les données de trafic.
+        Récupère et parse les données de trafic Paris.
 
         Returns:
             Liste des lectures de trafic
         """
-        readings = []
+        try:
+            data = self.http_client.get(
+                endpoint="",
+                params={"limit": self.limit},
+                error_message="Erreur API trafic Paris",
+            )
 
-        for zone in ZONES:
-            try:
-                data = self._fetch_flow(zone["lat"], zone["lon"])
-                if data:
-                    zone_readings = self._extract_zone_readings(data, zone)
-                    readings.extend(zone_readings)
-            except ApiClientError as exc:
-                log.warning(f"Zone {zone['name']} ignorée : {exc}")
-                continue
+            results = data.get("results", []) if isinstance(data, dict) else []
+            readings = []
 
-        log.info(f"✅ {len(readings)} mesures trafic extraites")
-        return readings
+            for item in results:
+                if not isinstance(item, dict):
+                    continue
 
-    def _fetch_flow(self, lat: float, lon: float) -> Dict[str, Any]:
-        """Récupère le flux de trafic pour une position."""
-        return self.http_client.get(
-            endpoint="",
-            params={
-                "in": f"circle:{lat},{lon};r=5000",
-                "locationReferencing": "shape",
-                "apiKey": self.api_key,
-            },
-            error_message=f"Erreur HERE API ({lat}, {lon})",
-        )
+                try:
+                    reading = self._build_traffic_reading(item)
+                    if reading:
+                        readings.append(reading)
+                except DataValidationError as exc:
+                    log.debug(f"Donnée trafic ignorée : {exc}")
+                    continue
 
-    def _extract_zone_readings(
-        self, data: Dict[str, Any], zone: Dict[str, Any]
-    ) -> List[TrafficReading]:
-        """Extrait les lectures de trafic pour une zone."""
-        readings = []
+            log.info(f"✅ {len(readings)} mesures trafic extraites")
+            return readings
 
-        for item in data.get("results", []) or []:
-            try:
-                reading = self._build_traffic_reading(item, zone)
-                if reading:
-                    readings.append(reading)
-            except DataValidationError as exc:
-                log.debug(f"Donnée trafic ignorée : {exc}")
-                continue
+        except ApiClientError:
+            raise
+        except Exception as exc:
+            raise ApiClientError(
+                f"Erreur trafic Paris inattendue : {exc}",
+                context="PARIS_TRAFFIC_EXTRACT",
+            ) from exc
 
-        return readings
-
-    def _build_traffic_reading(
-        self, item: Dict[str, Any], zone: Dict[str, Any]
-    ) -> Optional[TrafficReading]:
+    def _build_traffic_reading(self, item: Dict[str, Any]) -> Optional[TrafficReading]:
         """Construit une TrafficReading valide."""
-        current_flow = item.get("currentFlow", {}) or {}
+        geo = item.get("geo_point_2d") or {}
 
         try:
             return TrafficReading(
-                city=zone["name"],
-                jam_factor=float(current_flow.get("jamFactor", 0) or 0),
-                current_speed=float(current_flow.get("speed", 0) or 0),
-                free_flow_speed=float(current_flow.get("freeFlowSpeed", 0) or 0),
-                confidence=float(current_flow.get("confidence", 0) or 0),
-                latitude=float(zone["lat"]),
-                longitude=float(zone["lon"]),
-                timestamp=datetime.utcnow().isoformat(),
+                city="Paris",
+                street=item.get("libelle", "Unknown"),
+                section_id=str(item.get("iu_ac", "")),
+                q=float(item.get("q", 0) or 0),
+                etat_trafic=item.get("etat_trafic", "Inconnu"),
+                latitude=float(geo.get("lat", 0.0)),
+                longitude=float(geo.get("lon", 0.0)),
+                timestamp=item.get("t_1h") or datetime.utcnow().isoformat(),
+                upstream_name=item.get("libelle_nd_amont"),
+                downstream_name=item.get("libelle_nd_aval"),
             )
         except (TypeError, ValueError) as exc:
             raise DataValidationError(f"Conversion de type échouée : {exc}") from exc

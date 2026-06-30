@@ -23,7 +23,7 @@ class SensorError(SmartCityException):
 
 
 class ApiClientError(SmartCityException):
-    """Erreur liée à un client API (OpenAQ, HERE, etc.)."""
+    """Erreur liée à un client API (OpenAQ, ParisTraffic, etc.)."""
     pass
 
 

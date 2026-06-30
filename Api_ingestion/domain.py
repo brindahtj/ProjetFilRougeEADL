@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 
 @dataclass
@@ -14,11 +15,14 @@ class PollutionReading:
 
 @dataclass
 class TrafficReading:
+    """Modèle trafic pour API Paris OpenData."""
     city: str
-    jam_factor: float
-    current_speed: float
-    free_flow_speed: float
-    confidence: float
+    street: str
+    section_id: str
+    q: float
+    etat_trafic: str
     latitude: float
     longitude: float
     timestamp: str
+    upstream_name: Optional[str] = None
+    downstream_name: Optional[str] = None
