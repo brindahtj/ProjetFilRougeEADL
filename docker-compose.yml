@@ -1,0 +1,83 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: urbanhub_postgres
+    environment:
+      POSTGRES_DB: urbanhub
+      POSTGRES_USER: urbanhub_user
+      POSTGRES_PASSWORD: urbanhub_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U urbanhub_user -d urbanhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: urbanhub_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: urbanhub_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@urbanhub.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  api_ingestion:
+    build:
+      context: .
+      dockerfile: Api_ingestion/Dockerfile
+    container_name: urbanhub_api
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: postgres
+      RABBIT_HOST: rabbitmq
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./Api_ingestion/data:/app/data
+
+  moteur_correlation:
+    build:
+      context: .
+      dockerfile: MoteurCorrelation/Dockerfile
+    container_name: urbanhub_moteur
+    environment:
+      RABBIT_HOST: rabbitmq
+      POSTGRES_HOST: postgres
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
