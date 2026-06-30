@@ -17,6 +17,7 @@ class PollutionReading:
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     source: Optional[str] = None
+    zone: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
@@ -33,6 +34,7 @@ class TrafficReading:
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     source: Optional[str] = None
+    zone: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)

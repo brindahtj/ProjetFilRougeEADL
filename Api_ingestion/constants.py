@@ -54,3 +54,4 @@ TRAFFIC_HISTORY_MIN_SIZE = 5  # minimum de mesures historiques pour calcul
 
 NO2_WARNING = 100  # seuil alerte warning
 NO2_CRITICAL = 200  # seuil alerte critical
+

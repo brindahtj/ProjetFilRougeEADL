@@ -2,6 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+from Api_ingestion.zone_utils import get_paris_zone
 
 from Api_ingestion.config import (
     AIR_API_KEY,
@@ -211,15 +212,16 @@ class OpenAQClient(DataSourceClient):
             raise DataValidationError("Valeur manquante")
 
         try:
-            return PollutionReading(
-                city=city,
-                pollutant=pollutant,
-                value=float(value),
-                unit=unit or "",
-                latitude=float(latitude),
-                longitude=float(longitude),
-                timestamp=timestamp or datetime.utcnow().isoformat(),
-            )
+         return PollutionReading(
+            city=city,
+            zone=get_paris_zone(float(latitude), float(longitude)) if city.lower() == "paris" else city,
+            pollutant=pollutant,
+            value=float(value),
+            unit=unit or "",
+            latitude=float(latitude),
+            longitude=float(longitude),
+            timestamp=timestamp or datetime.utcnow().isoformat(),
+        )
         except (TypeError, ValueError) as exc:
             raise DataValidationError(f"Conversion de type échouée : {exc}") from exc
 
@@ -287,18 +289,20 @@ class ParisTrafficClient(DataSourceClient):
             ) from exc
 
     def _build_traffic_reading(self, item: Dict[str, Any]) -> Optional[TrafficReading]:
-        """Construit une TrafficReading valide."""
         geo = item.get("geo_point_2d") or {}
+        lat = float(geo.get("lat", 0.0))
+        lon = float(geo.get("lon", 0.0))
 
         try:
             return TrafficReading(
                 city="Paris",
+                zone=get_paris_zone(lat, lon),
                 street=item.get("libelle", "Unknown"),
                 section_id=str(item.get("iu_ac", "")),
                 q=float(item.get("q", 0) or 0),
                 etat_trafic=item.get("etat_trafic", "Inconnu"),
-                latitude=float(geo.get("lat", 0.0)),
-                longitude=float(geo.get("lon", 0.0)),
+                latitude=lat,
+                longitude=lon,
                 timestamp=item.get("t_1h") or datetime.utcnow().isoformat(),
                 upstream_name=item.get("libelle_nd_amont"),
                 downstream_name=item.get("libelle_nd_aval"),

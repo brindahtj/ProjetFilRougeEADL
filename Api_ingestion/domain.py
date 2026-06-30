@@ -5,6 +5,7 @@ from typing import Optional
 @dataclass
 class PollutionReading:
     city: str
+    zone:str
     pollutant: str
     value: float
     unit: str
@@ -17,6 +18,7 @@ class PollutionReading:
 class TrafficReading:
     """Modèle trafic pour API Paris OpenData."""
     city: str
+    zone: str
     street: str
     section_id: str
     q: float

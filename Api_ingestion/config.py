@@ -31,9 +31,9 @@ ZONES = [
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-
 DEFAULT_POLLUTION_FIELDS = [
     "city",
+    "zone",
     "pollutant",
     "value",
     "unit",
@@ -44,6 +44,7 @@ DEFAULT_POLLUTION_FIELDS = [
 
 DEFAULT_TRAFFIC_FIELDS = [
     "city",
+    "zone",
     "street",
     "section_id",
     "q",

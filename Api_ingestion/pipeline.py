@@ -68,6 +68,12 @@ class SmartCityPipeline:
                         [reading.__dict__ for reading in pollution],
                         routing_key="pollution",
                     )
+                    # après avoir traité pollution (dans if pollution:)
+                    self.pollution_history.extend(pollution)
+                    if len(self.pollution_history) > 2000:
+                        self.pollution_history = self.pollution_history[-2000:]
+
+
                     log.info("✅ %d mesures pollution publiées", len(pollution))
 
                     # Détecter alertes pollution
@@ -83,6 +89,10 @@ class SmartCityPipeline:
                         [reading.__dict__ for reading in traffic],
                         routing_key="traffic",
                     )
+                    # après avoir traité traffic (dans if traffic:)
+                    self.traffic_history.extend(traffic)
+                    if len(self.traffic_history) > 2000:
+                        self.traffic_history = self.traffic_history[-2000:]
                     log.info("✅ %d mesures trafic publiées", len(traffic))
 
                     # Accumuler historique
