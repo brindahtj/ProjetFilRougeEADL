@@ -1,4 +1,4 @@
-from Api_ingestion.pipeline import run_pipeline
+from Archive.Api_ingestion.pipeline import run_pipeline
 
 
 if __name__ == '__main__':

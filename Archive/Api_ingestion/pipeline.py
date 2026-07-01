@@ -1,29 +1,21 @@
 import logging
 import time
-from statistics import mean
 
-from Api_ingestion.api_clients import ParisTrafficClient, OpenAQClient
-from Api_ingestion.config import (
+from Archive.Api_ingestion.api_clients import ParisTrafficClient, OpenAQClient
+from Archive.Api_ingestion.config import (
     DEFAULT_POLLUTION_FIELDS,
     DEFAULT_TRAFFIC_FIELDS,
     LOG_DIR,
     OUTPUT_DIR,
     setup_logging,
 )
-from Api_ingestion.constants import (
-    TRAFFIC_Q_FIXED_WARNING,
-    TRAFFIC_Q_FIXED_CRITICAL,
-    TRAFFIC_Q_PERCENTILE_WARNING,
-    TRAFFIC_Q_PERCENTILE_CRITICAL,
-    TRAFFIC_HISTORY_MIN_SIZE,
-    NO2_WARNING,
-    NO2_CRITICAL,
+from Archive.Api_ingestion.constants import (
     ROUTING_KEY_ALERTS,
 )
-from Api_ingestion.csv_repository import CsvRepository
-from Api_ingestion.domain import TrafficReading, PollutionReading
-from Api_ingestion.exceptions import SmartCityException
-from Api_ingestion.publisher import RabbitMQPublisher
+from Archive.Api_ingestion.csv_repository import CsvRepository
+from Archive.Api_ingestion.domain import TrafficReading, PollutionReading
+from Archive.Api_ingestion.exceptions import SmartCityException
+from Archive.Api_ingestion.publisher import RabbitMQPublisher
 
 log = logging.getLogger(__name__)
 
@@ -118,10 +110,9 @@ class SmartCityPipeline:
         log.info("🏁 Pipeline terminé")
 
 from statistics import mean, stdev
-from Api_ingestion.constants import (
+from Archive.Api_ingestion.constants import (
     TRAFFIC_Q_FIXED_WARNING,
     TRAFFIC_Q_FIXED_CRITICAL,
-    TRAFFIC_HISTORY_MIN_SIZE,
     TRAFFIC_ABOVE_MEAN_FACTOR,
     TRAFFIC_ABOVE_MEAN_STD_MULT,
     POLLUTION_ABOVE_MEAN_FACTOR,

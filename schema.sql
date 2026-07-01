@@ -138,6 +138,33 @@ CREATE INDEX IF NOT EXISTS idx_correlations_pollutant_metric
     ON correlations (pollutant, metric);
 
 -- =========================================================
+-- Table : thresholds (Référentiel Règles & Seuils)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS thresholds (
+    id              BIGSERIAL PRIMARY KEY,
+    key             VARCHAR(100) NOT NULL,      -- "NO2_WARNING", "TRAFFIC_Q_CRITICAL", etc.
+    value           DOUBLE PRECISION NOT NULL,
+    pollutant       VARCHAR(50),                -- null for traffic, "no2"/"pm25" for pollution
+    metric          VARCHAR(50),                -- "value" for pollution, "q" for traffic
+    unit            VARCHAR(50),
+    description     TEXT,
+    version         INTEGER DEFAULT 1,
+    active          BOOLEAN DEFAULT true,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_thresholds_key ON thresholds(key);
+CREATE INDEX IF NOT EXISTS idx_thresholds_pollutant ON thresholds(pollutant);
+INSERT INTO thresholds (key, value, pollutant, metric, unit, description) VALUES
+('NO2_WARNING', 100, 'no2', 'value', 'µg/m³', 'NO2 seuil alerte warning'),
+('NO2_CRITICAL', 200, 'no2', 'value', 'µg/m³', 'NO2 seuil alerte critique'),
+('TRAFFIC_Q_WARNING', 500, NULL, 'q', 'veh/h', 'Trafic seuil alerte warning'),
+('TRAFFIC_Q_CRITICAL', 800, NULL, 'q', 'veh/h', 'Trafic seuil alerte critique'),
+('PM25_WARNING', 25, 'pm25', 'value', 'µg/m³', 'PM2.5 seuil alerte warning'),
+('PM25_CRITICAL', 50, 'pm25', 'value', 'µg/m³', 'PM2.5 seuil alerte critique')
+ON CONFLICT (key) DO NOTHING;
+-- =========================================================
 -- Contraintes optionnelles
 -- =========================================================
 

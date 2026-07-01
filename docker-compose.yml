@@ -46,37 +46,78 @@ services:
     depends_on:
       - postgres
 
-  api_ingestion:
+  referential:
     build:
-      context: .
-      dockerfile: Api_ingestion/Dockerfile
-    container_name: urbanhub_api
+      context: ./services/referential-service
+      dockerfile: Dockerfile
+    container_name: referential_service
+    ports:
+      - "8001:8001"
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      - postgres
+
+
+  notification:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification_service
+    environment:
+      RABBIT_HOST: rabbitmq
+    depends_on:
+      - rabbitmq
+
+
+  ingestion:
+    build:
+      context: ./services/ingestion-service
+      dockerfile: Dockerfile
+    environment:
+      VALIDATION_SERVICE_URL: http://validation:8002
     ports:
       - "8000:8000"
-    environment:
-      POSTGRES_HOST: postgres
-      RABBIT_HOST: rabbitmq
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    volumes:
-      - ./Api_ingestion/data:/app/data
+      - validation
+      - rabbitmq
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  moteur_correlation:
+  validation:
     build:
-      context: .
-      dockerfile: MoteurCorrelation/Dockerfile
-    container_name: urbanhub_moteur
+      context: ./services/validation-service
+      dockerfile: Dockerfile
+    environment:
+      RABBIT_HOST: rabbitmq
+    ports:
+      - "8002:8002"
+    depends_on:
+      - rabbitmq
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+
+  association:
+    build:
+      context: ./services/association-service
+      dockerfile: Dockerfile
+    environment:
+      RABBIT_HOST: rabbitmq
+    depends_on:
+      - rabbitmq
+    command: python src/subscriber.py
+
+  analyse:
+    build:
+      context: ./services/analyse-service
+      dockerfile: Dockerfile
     environment:
       RABBIT_HOST: rabbitmq
       POSTGRES_HOST: postgres
+    ports:
+      - "8003:8003"
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+      - rabbitmq
+      - postgres
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
 
 volumes:
   postgres_data:

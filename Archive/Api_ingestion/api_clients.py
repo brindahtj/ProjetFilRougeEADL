@@ -2,19 +2,19 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from Api_ingestion.zone_utils import get_paris_zone
+from Archive.Api_ingestion.zone_utils import get_paris_zone
 
-from Api_ingestion.config import (
+from Archive.Api_ingestion.config import (
     AIR_API_KEY,
     OPENAQ_BASE_URL,
     OPENAQ_COUNTRY,
     PARIS_TRAFFIC_BASE_URL,
     PARIS_TRAFFIC_LIMIT,
 )
-from Api_ingestion.constants import ALLOWED_POLLUTANTS
-from Api_ingestion.domain import PollutionReading, TrafficReading
-from Api_ingestion.exceptions import ApiClientError, DataValidationError
-from Api_ingestion.http_client import HttpClient
+from Archive.Api_ingestion.constants import ALLOWED_POLLUTANTS
+from Archive.Api_ingestion.domain import PollutionReading, TrafficReading
+from Archive.Api_ingestion.exceptions import ApiClientError, DataValidationError
+from Archive.Api_ingestion.http_client import HttpClient
 
 log = logging.getLogger(__name__)
 

@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 
-from Api_ingestion.constants import (
+from Archive.Api_ingestion.constants import (
     STATE_CRITICAL,
     STATE_NORMAL,
     STATE_WARNING,
 )
-from Api_ingestion.exceptions import SensorError
-from Api_ingestion.sensor_state import NormalState, SensorState
+from Archive.Api_ingestion.exceptions import SensorError
+from Archive.Api_ingestion.sensor_state import NormalState, SensorState
 
 
 @dataclass

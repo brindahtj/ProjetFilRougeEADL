@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 
-from Api_ingestion.constants import (
+from Archive.Api_ingestion.constants import (
     MAX_ANOMALIES_WARNING,
-    MIN_ANOMALIES_CRITICAL,
     MIN_ANOMALIES_WARNING,
     STATE_CRITICAL,
     STATE_NORMAL,

@@ -3,7 +3,7 @@ import logging
 
 import pika
 
-from Api_ingestion.config import (
+from Archive.Api_ingestion.config import (
     EXCHANGE,
     RABBIT_QUEUE,
     RABBIT_HOST,
@@ -12,7 +12,7 @@ from Api_ingestion.config import (
     RABBIT_USER,
     RABBIT_VHOST,
 )
-from Api_ingestion.exceptions import PublisherError
+from Archive.Api_ingestion.exceptions import PublisherError
 
 log = logging.getLogger(__name__)
 

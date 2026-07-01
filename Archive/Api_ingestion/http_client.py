@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any
 
 import requests
 
-from Api_ingestion.exceptions import ApiClientError
+from Archive.Api_ingestion.exceptions import ApiClientError
 
 log = logging.getLogger(__name__)
 

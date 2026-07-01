@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from Api_ingestion.alert_models import Alert, AlertCreate, AlertUpdate
+from Archive.Api_ingestion.alert_models import Alert, AlertCreate, AlertUpdate
 
 
 class AlertStore:
