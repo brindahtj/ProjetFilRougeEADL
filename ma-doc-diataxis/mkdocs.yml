@@ -1,0 +1,14 @@
+site_name: Ma Documentation Diátaxis UrbanHub
+theme:
+  name: material
+
+nav:
+  - Accueil: index.md
+  - Tutoriels (Apprentissage):
+      - Premier pas: tutorials/getting-started.md
+  - Guides pratiques (Objectifs):
+      - Comment configurer X: how-to/configure-x.md
+  - Référence (Information):
+      - API-Documentation: reference/api.md
+  - Explication (Compréhension):
+      - Pourquoi cette architecture: explanation/architecture.md
