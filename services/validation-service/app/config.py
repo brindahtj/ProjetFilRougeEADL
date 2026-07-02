@@ -17,5 +17,22 @@ POLLUTION_VALUE_MAX = 1000  # µg/m³
 TRAFFIC_Q_MIN = 0
 TRAFFIC_Q_MAX = 10000  # veh/h
 
-CITIES_ALLOWED = {"paris", "lyon", "marseille"}
+CITIES_ALLOWED = {"paris"}
 ZONES_ALLOWED = {"nord", "sud", "est", "ouest", "centre"}
+
+# API Documentation
+API_TITLE = "Validation Service"
+API_DESCRIPTION = """
+Service de validation des mesures brutes (pollution et trafic).
+
+## États des mesures
+- **NORMAL** : donnée complète et conforme → publication
+- **CRITICAL** : donnée incomplète ou aberrante → mise de côté
+
+## Flux
+1. Ingestion Service envoie mesure brute
+2. Validation Service valide la mesure
+3. Si NORMAL → publiée sur RabbitMQ
+4. Si CRITICAL → rejetée
+"""
+API_VERSION = "1.0.0"
