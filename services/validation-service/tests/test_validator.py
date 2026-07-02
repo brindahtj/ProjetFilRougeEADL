@@ -1,7 +1,7 @@
 """Tests unitaires pour le validateur."""
-import pytest
-from app.validator import MeasurementValidator
+
 from app.models import RawMeasurement
+from app.validator import MeasurementValidator
 
 
 class TestValidatorNormalState:
@@ -61,7 +61,7 @@ class TestValidatorCriticalState:
             pollutant="no2",
             value=85.5,
             latitude=48.8566,
-            longitude=2.3522
+            longitude=2.3522,
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "CRITICAL"
@@ -75,7 +75,7 @@ class TestValidatorCriticalState:
             pollutant=None,
             value=85.5,
             latitude=48.8566,
-            longitude=2.3522
+            longitude=2.3522,
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "CRITICAL"
@@ -94,7 +94,7 @@ class TestValidatorPollutionSpecific:
                 pollutant=pollutant,
                 value=50.0,
                 latitude=48.8566,
-                longitude=2.3522
+                longitude=2.3522,
             )
             result = MeasurementValidator.validate(m)
             assert result.state == "NORMAL"
@@ -107,7 +107,7 @@ class TestValidatorPollutionSpecific:
             pollutant="unknown_gas",
             value=50.0,
             latitude=48.8566,
-            longitude=2.3522
+            longitude=2.3522,
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "CRITICAL"
@@ -125,7 +125,7 @@ class TestValidatorTrafficSpecific:
             section_id="sec_001",
             q=250.0,
             latitude=48.8566,
-            longitude=2.3522
+            longitude=2.3522,
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "CRITICAL"
@@ -139,7 +139,7 @@ class TestValidatorTrafficSpecific:
             section_id=None,
             q=250.0,
             latitude=48.8566,
-            longitude=2.3522
+            longitude=2.3522,
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "CRITICAL"
@@ -153,7 +153,7 @@ class TestValidatorTrafficSpecific:
             section_id="sec_001",
             q=15000.0,  # > MAX
             latitude=48.8566,
-            longitude=2.3522
+            longitude=2.3522,
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "CRITICAL"
@@ -165,12 +165,7 @@ class TestValidatorCoordinates:
     def test_valid_coordinates(self):
         """Coordonnées valides sont acceptées."""
         m = RawMeasurement(
-            type="pollution",
-            city="paris",
-            pollutant="no2",
-            value=85.5,
-            latitude=0.0,
-            longitude=0.0
+            type="pollution", city="paris", pollutant="no2", value=85.5, latitude=0.0, longitude=0.0
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "NORMAL"
@@ -183,7 +178,7 @@ class TestValidatorCoordinates:
             pollutant="no2",
             value=85.5,
             latitude=100.0,  # > 90
-            longitude=2.3522
+            longitude=2.3522,
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "CRITICAL"
@@ -196,7 +191,7 @@ class TestValidatorCoordinates:
             pollutant="no2",
             value=85.5,
             latitude=48.8566,
-            longitude=200.0  # > 180
+            longitude=200.0,  # > 180
         )
         result = MeasurementValidator.validate(m)
         assert result.state == "CRITICAL"

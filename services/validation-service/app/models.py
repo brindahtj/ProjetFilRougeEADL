@@ -1,10 +1,25 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Literal
 from datetime import datetime
 
 
 class RawMeasurement(BaseModel):
     """Modèle de mesure brute reçue par l'API."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "type": "pollution",
+                "city": "paris",
+                "zone": "nord",
+                "pollutant": "no2",
+                "value": 85.5,
+                "latitude": 48.8566,
+                "longitude": 2.3522,
+                "timestamp": "2026-07-02T10:30:00Z"
+            }
+        }
+    )
+
     type: Literal["pollution", "traffic"] = Field(
         ..., description="Type de mesure: pollution ou traffic"
     )
@@ -19,41 +34,11 @@ class RawMeasurement(BaseModel):
     longitude: Optional[float] = Field(None, description="Longitude (-180 à 180)")
     timestamp: Optional[datetime] = Field(None, description="Timestamp de la mesure")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "type": "pollution",
-                "city": "paris",
-                "zone": "nord",
-                "pollutant": "no2",
-                "value": 85.5,
-                "latitude": 48.8566,
-                "longitude": 2.3522,
-                "timestamp": "2026-07-02T10:30:00Z"
-            }
-        }
-
 
 class ValidationResult(BaseModel):
     """Résultat de validation d'une mesure."""
-    state: Literal["NORMAL", "CRITICAL"] = Field(
-        ..., description="État de la mesure: NORMAL (valide) ou CRITICAL (invalide)"
-    )
-    valid: bool = Field(
-        ..., description="Indicateur de validité cohérent avec state"
-    )
-    measurement: Optional[RawMeasurement] = Field(
-        None, description="Mesure validée (si valide)"
-    )
-    errors: list[str] = Field(
-        default_factory=list, description="Erreurs (données incomplètes/aberrantes)"
-    )
-    warnings: list[str] = Field(
-        default_factory=list, description="Avertissements (non bloquants)"
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "state": "NORMAL",
                 "valid": True,
@@ -69,6 +54,23 @@ class ValidationResult(BaseModel):
                 "warnings": []
             }
         }
+    )
+
+    state: Literal["NORMAL", "CRITICAL"] = Field(
+        ..., description="État de la mesure: NORMAL (valide) ou CRITICAL (invalide)"
+    )
+    valid: bool = Field(
+        ..., description="Indicateur de validité cohérent avec state"
+    )
+    measurement: Optional[RawMeasurement] = Field(
+        None, description="Mesure validée (si valide)"
+    )
+    errors: list[str] = Field(
+        default_factory=list, description="Erreurs (données incomplètes/aberrantes)"
+    )
+    warnings: list[str] = Field(
+        default_factory=list, description="Avertissements (non bloquants)"
+    )
 
 
 class ValidationResponse(BaseModel):

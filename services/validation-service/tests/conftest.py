@@ -1,5 +1,6 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from app.models import RawMeasurement
 
 
@@ -14,7 +15,7 @@ def valid_pollution_measurement():
         value=85.5,
         latitude=48.8566,
         longitude=2.3522,
-        timestamp=None
+        timestamp=None,
     )
 
 
@@ -30,7 +31,7 @@ def valid_traffic_measurement():
         q=250.0,
         latitude=45.7640,
         longitude=4.8357,
-        timestamp=None
+        timestamp=None,
     )
 
 
@@ -38,12 +39,7 @@ def valid_traffic_measurement():
 def incomplete_measurement():
     """Fixture : mesure incomplète (manque latitude et longitude)."""
     return RawMeasurement(
-        type="pollution",
-        city="paris",
-        pollutant="no2",
-        value=85.5,
-        latitude=None,
-        longitude=None
+        type="pollution", city="paris", pollutant="no2", value=85.5, latitude=None, longitude=None
     )
 
 
@@ -56,19 +52,14 @@ def out_of_range_measurement():
         pollutant="no2",
         value=5000.0,  # > MAX_VALUE
         latitude=48.8566,
-        longitude=2.3522
+        longitude=2.3522,
     )
 
 
 @pytest.fixture
 def invalid_type_measurement():
     """Fixture : type invalide."""
-    return RawMeasurement(
-        type="unknown",
-        city="paris",
-        latitude=48.8566,
-        longitude=2.3522
-    )
+    return RawMeasurement(type="unknown", city="paris", latitude=48.8566, longitude=2.3522)
 
 
 @pytest.fixture

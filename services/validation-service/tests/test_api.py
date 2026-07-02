@@ -1,12 +1,13 @@
 """Tests des endpoints API."""
+
 import pytest
-from fastapi.testclient import TestClient
 from app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
-def client():
-    """Client de test FastAPI."""
+def client(mock_rabbit_init):
+    """Client de test FastAPI avec Rabbit mocké."""
     return TestClient(app)
 
 
@@ -25,23 +26,27 @@ class TestHealthEndpoint:
 class TestValidateEndpoint:
     """Tests de l'endpoint POST /validate."""
 
-    def test_validate_valid_pollution(self, client, valid_pollution_measurement, mock_rabbit_connection):
+    def test_validate_valid_pollution(
+        self, client, valid_pollution_measurement, mock_rabbit_connection
+    ):
         """Valider une mesure pollution valide → 200 NORMAL."""
         response = client.post(
             "/validate",
-            json=valid_pollution_measurement.dict()
+            json=valid_pollution_measurement.model_dump()
         )
         assert response.status_code == 200
         data = response.json()
         assert data["state"] == "NORMAL"
         assert data["valid"] is True
         assert data["routing_key"] == "pollution"
+        # Vérifier que publish a été appelée
+        mock_rabbit_connection.channel.assert_called()
 
     def test_validate_invalid_pollution(self, client, incomplete_measurement):
         """Valider une mesure invalide → 200 CRITICAL."""
         response = client.post(
             "/validate",
-            json=incomplete_measurement.dict()
+            json=incomplete_measurement.model_dump()
         )
         assert response.status_code == 200
         data = response.json()
@@ -56,17 +61,22 @@ class TestValidateEndpoint:
             json={"type": "unknown", "city": ""}
         )
         # La validation Pydantic échoue → erreur de validation
-        assert response.status_code in [422, 200]  # Dépend de la structure
+        assert response.status_code in [422, 200]
 
 
 class TestBatchEndpoint:
     """Tests de l'endpoint POST /validate-batch."""
 
-    def test_batch_mixed_measurements(self, client, valid_pollution_measurement, incomplete_measurement, mock_rabbit_connection):
+    def test_batch_mixed_measurements(
+        self,
+        client,
+        valid_pollution_measurement,
+        incomplete_measurement
+    ):
         """Batch avec mesures valides et invalides → stats correctes."""
         measurements = [
-            valid_pollution_measurement.dict(),
-            incomplete_measurement.dict()
+            valid_pollution_measurement.model_dump(),
+            incomplete_measurement.model_dump()
         ]
         response = client.post("/validate-batch", json=measurements)
         assert response.status_code == 200
@@ -75,7 +85,7 @@ class TestBatchEndpoint:
         assert data["accepted"] == 1
         assert data["rejected"] == 1
 
-    def test_batch_empty(self, client, mock_rabbit_connection):
+    def test_batch_empty(self, client):
         """Batch vide → résultat vide."""
         response = client.post("/validate-batch", json=[])
         assert response.status_code == 200

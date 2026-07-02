@@ -2,14 +2,12 @@ import logging
 import pika
 import json
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from .models import (
     RawMeasurement,
-    ValidationResult,
     ValidationResponse,
     BatchValidationResponse,
-    HealthResponse
+    HealthResponse,
 )
 from .validator import MeasurementValidator
 from .config import RABBIT_HOST, RABBIT_USER, RABBIT_PASS, EXCHANGE
@@ -27,9 +25,7 @@ def init_rabbit():
     global publisher_connection
     try:
         creds = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
-        params = pika.ConnectionParameters(
-            host=RABBIT_HOST, credentials=creds, heartbeat=600
-        )
+        params = pika.ConnectionParameters(host=RABBIT_HOST, credentials=creds, heartbeat=600)
         publisher_connection = pika.BlockingConnection(params)
         ch = publisher_connection.channel()
         ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)
@@ -55,14 +51,9 @@ app = FastAPI(
     title=API_TITLE,
     description=API_DESCRIPTION,
     version=API_VERSION,
-    contact={
-        "name": "Smart City Team",
-        "email": "team@smartcity.local"
-    },
-    license_info={
-        "name": "MIT"
-    },
-    lifespan=lifespan
+    contact={"name": "Smart City Team", "email": "team@smartcity.local"},
+    license_info={"name": "MIT"},
+    lifespan=lifespan,
 )
 
 
@@ -70,12 +61,13 @@ app = FastAPI(
 # ROUTES DE SANTÉ
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get(
     "/health",
     response_model=HealthResponse,
     tags=["Health"],
     summary="Vérifier la santé du service",
-    description="Endpoint de santé pour les health checks"
+    description="Endpoint de santé pour les health checks",
 )
 def health():
     """Retourne le statut du service."""
@@ -85,6 +77,7 @@ def health():
 # ─────────────────────────────────────────────────────────────────────────────
 # ROUTES DE VALIDATION
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @app.post(
     "/validate",
@@ -116,10 +109,10 @@ def health():
                         "message": "Measurement published to event bus",
                         "routing_key": "pollution",
                         "errors": [],
-                        "warnings": []
+                        "warnings": [],
                     }
                 }
-            }
+            },
         },
         400: {
             "description": "Erreur de validation",
@@ -130,12 +123,12 @@ def health():
                         "valid": False,
                         "message": "Measurement rejected",
                         "errors": ["city is required"],
-                        "warnings": []
+                        "warnings": [],
                     }
                 }
-            }
-        }
-    }
+            },
+        },
+    },
 )
 def validate(measurement: RawMeasurement):
     """Valide une mesure et la publie si NORMAL."""
@@ -150,7 +143,7 @@ def validate(measurement: RawMeasurement):
                 message="Measurement published to event bus",
                 routing_key=result.measurement.type,
                 errors=result.errors,
-                warnings=result.warnings
+                warnings=result.warnings,
             )
         else:
             return ValidationResponse(
@@ -158,7 +151,7 @@ def validate(measurement: RawMeasurement):
                 valid=False,
                 message="Measurement rejected (incomplete or anomalous data)",
                 errors=result.errors,
-                warnings=result.warnings
+                warnings=result.warnings,
             )
     except Exception as e:
         log.exception("Validation error: %s", e)
@@ -186,17 +179,17 @@ def validate(measurement: RawMeasurement):
                                 "state": "NORMAL",
                                 "valid": True,
                                 "message": "Measurement published to event bus",
-                                "routing_key": "pollution"
+                                "routing_key": "pollution",
                             }
                         ],
                         "total": 1,
                         "accepted": 1,
-                        "rejected": 0
+                        "rejected": 0,
                     }
                 }
-            }
+            },
         }
-    }
+    },
 )
 def validate_batch(measurements: list[RawMeasurement]):
     """Valide un lot de mesures."""
@@ -218,14 +211,17 @@ def validate_batch(measurements: list[RawMeasurement]):
                 ),
                 routing_key=result.measurement.type if result.measurement else None,
                 errors=result.errors,
-                warnings=result.warnings
+                warnings=result.warnings,
             )
 
             if result.state == "NORMAL" and result.measurement:
                 _publish_measurement(result.measurement)
                 accepted_count += 1
-                log.info("✓ [NORMAL] Published: %s from %s",
-                         result.measurement.type, result.measurement.city)
+                log.info(
+                    "✓ [NORMAL] Published: %s from %s",
+                    result.measurement.type,
+                    result.measurement.city,
+                )
             else:
                 rejected_count += 1
                 log.warning("✗ [CRITICAL] Not published: %s", result.errors)
@@ -236,7 +232,7 @@ def validate_batch(measurements: list[RawMeasurement]):
             results=results,
             total=len(measurements),
             accepted=accepted_count,
-            rejected=rejected_count
+            rejected=rejected_count,
         )
     except Exception as e:
         log.exception("Batch validation error: %s", e)
@@ -246,6 +242,7 @@ def validate_batch(measurements: list[RawMeasurement]):
 # ─────────────────────────────────────────────────────────────────────────────
 # FONCTIONS UTILITAIRES
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _publish_measurement(measurement: RawMeasurement) -> None:
     """Publie une mesure sur RabbitMQ."""
@@ -262,4 +259,5 @@ def _publish_measurement(measurement: RawMeasurement) -> None:
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

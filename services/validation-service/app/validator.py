@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from .models import RawMeasurement, ValidationResult
 from .state import MeasurementStateMachine
 from .config import (
@@ -12,39 +12,32 @@ log = logging.getLogger("validator")
 
 
 class MeasurementValidator:
-    """
-    Validateur encapsulé pour mesures brutes.
-
-    Utilise une machine d'état pour gérer les transitions.
-    Responsabilités séparées : validation métier vs gestion d'état.
-    """
+    """Validateur encapsulé pour mesures brutes."""
 
     @staticmethod
     def validate(measurement: RawMeasurement) -> ValidationResult:
-        """
-        Valide une mesure brute et détermine son état.
-
-        """
-        # Créer une machine d'état vierge
+        """Valide une mesure brute et détermine son état."""
         state_machine = MeasurementStateMachine()
 
-        # Exécuter toutes les validations
         MeasurementValidator._validate_type(measurement, state_machine)
         MeasurementValidator._validate_common(measurement, state_machine)
         MeasurementValidator._validate_timestamp(measurement, state_machine)
         MeasurementValidator._validate_type_specific(measurement, state_machine)
 
-        # Construire et retourner le résultat
         return MeasurementValidator._build_result(measurement, state_machine)
 
     @staticmethod
-    def _validate_type(measurement: RawMeasurement, state_machine: MeasurementStateMachine) -> None:
+    def _validate_type(
+        measurement: RawMeasurement, state_machine: MeasurementStateMachine
+    ) -> None:
         """Valide le type de mesure."""
         if measurement.type not in ["pollution", "traffic"]:
             state_machine.add_error(f"Invalid type: {measurement.type}")
 
     @staticmethod
-    def _validate_common(measurement: RawMeasurement, state_machine: MeasurementStateMachine) -> None:
+    def _validate_common(
+        measurement: RawMeasurement, state_machine: MeasurementStateMachine
+    ) -> None:
         """Validations communes à tous les types de mesures."""
         if measurement.city:
             measurement.city = measurement.city.lower()
@@ -71,19 +64,24 @@ class MeasurementValidator:
             state_machine.add_error("longitude is required")
 
     @staticmethod
-    def _validate_timestamp(measurement: RawMeasurement, state_machine: MeasurementStateMachine) -> None:
+    def _validate_timestamp(
+        measurement: RawMeasurement, state_machine: MeasurementStateMachine
+    ) -> None:
         """Valide le timestamp."""
         if measurement.timestamp is None:
-            measurement.timestamp = datetime.utcnow()
+            # Utiliser UTC timezone-aware (Pydantic v2)
+            measurement.timestamp = datetime.now(timezone.utc)
         else:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             if measurement.timestamp > now + timedelta(minutes=5):
                 state_machine.add_error("timestamp in the future (> 5 min)")
             if measurement.timestamp < now - timedelta(hours=24):
                 state_machine.add_warning("timestamp > 24h old")
 
     @staticmethod
-    def _validate_type_specific(measurement: RawMeasurement, state_machine: MeasurementStateMachine) -> None:
+    def _validate_type_specific(
+        measurement: RawMeasurement, state_machine: MeasurementStateMachine
+    ) -> None:
         """Valide les champs spécifiques au type de mesure."""
         if measurement.type == "pollution":
             errors = MeasurementValidator._validate_pollution(measurement)
@@ -124,23 +122,28 @@ class MeasurementValidator:
         return errors
 
     @staticmethod
-    def _build_result(measurement: RawMeasurement, state_machine: MeasurementStateMachine) -> ValidationResult:
-        """Construit le résultat de validation à partir de la machine d'état."""
+    def _build_result(
+        measurement: RawMeasurement, state_machine: MeasurementStateMachine
+    ) -> ValidationResult:
+        """Construit le résultat de validation."""
         current_state = state_machine.get_state()
         state_name = current_state.name()
         is_valid = current_state.is_valid()
 
         if is_valid:
-            log.info("✓ [%s] Measurement validated: %s from %s",
-                     state_name, measurement.type, measurement.city)
+            log.info(
+                "✓ [%s] Measurement validated: %s from %s",
+                state_name,
+                measurement.type,
+                measurement.city,
+            )
         else:
-            log.warning("✗ [%s] Validation failed: %s",
-                        state_name, state_machine.get_errors())
+            log.warning("✗ [%s] Validation failed: %s", state_name, state_machine.get_errors())
 
         return ValidationResult(
             state=state_name,
             valid=is_valid,
             measurement=measurement if is_valid else None,
             errors=state_machine.get_errors(),
-            warnings=state_machine.get_warnings()
+            warnings=state_machine.get_warnings(),
         )

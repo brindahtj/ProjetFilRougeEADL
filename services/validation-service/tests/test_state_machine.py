@@ -1,6 +1,6 @@
 """Tests de la machine d'état."""
-import pytest
-from app.state import MeasurementStateMachine, NormalState, CriticalState
+
+from app.state import CriticalState, MeasurementStateMachine, NormalState
 
 
 class TestStateMachine:
