@@ -19,7 +19,11 @@ class MeasurementValidator:
         # Check type
         if measurement.type not in ["pollution", "traffic"]:
             errors.append(f"Invalid type: {measurement.type}")
-            return ValidationResult(valid=False, errors=errors)
+            return ValidationResult(
+                state="CRITICAL",
+                valid=False,
+                errors=errors
+            )
 
         # Common validations
         if measurement.city:
@@ -37,9 +41,14 @@ class MeasurementValidator:
         if measurement.latitude is not None:
             if not (LATITUDE_MIN <= measurement.latitude <= LATITUDE_MAX):
                 errors.append(f"latitude out of range: {measurement.latitude}")
+        else:
+            errors.append("latitude is required")  # Donnée incomplète
+
         if measurement.longitude is not None:
             if not (LONGITUDE_MIN <= measurement.longitude <= LONGITUDE_MAX):
                 errors.append(f"longitude out of range: {measurement.longitude}")
+        else:
+            errors.append("longitude is required")  # Donnée incomplète
 
         # Timestamp validation
         if measurement.timestamp is None:
@@ -57,13 +66,16 @@ class MeasurementValidator:
         elif measurement.type == "traffic":
             errors.extend(MeasurementValidator._validate_traffic(measurement))
 
-        valid = len(errors) == 0
+        state = "CRITICAL" if len(errors) > 0 else "NORMAL"
+        valid = state == "NORMAL"
         if valid:
-            log.info("✓ Measurement validated: %s from %s", measurement.type, measurement.city)
+            log.info("✓ [NORMAL] Measurement validated: %s from %s",
+                     measurement.type, measurement.city)
         else:
-            log.warning("✗ Validation failed: %s", errors)
+            log.warning("✗ [CRITICAL] Validation failed: %s", errors)
 
         return ValidationResult(
+            state=state,
             valid=valid,
             measurement=measurement if valid else None,
             errors=errors,

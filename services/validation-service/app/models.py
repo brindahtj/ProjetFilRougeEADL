@@ -16,6 +16,7 @@ class RawMeasurement(BaseModel):
     timestamp: Optional[datetime] = None
 
 class ValidationResult(BaseModel):
+    state: Literal["NORMAL", "CRITICAL"]
     valid: bool
     measurement: Optional[RawMeasurement] = None
     errors: list[str] = []
