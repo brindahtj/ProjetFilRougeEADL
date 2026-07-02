@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16
@@ -56,8 +54,8 @@ services:
     environment:
       POSTGRES_HOST: postgres
     depends_on:
-      - postgres
-
+      postgres:
+        condition: service_healthy
 
   notification:
     build:
@@ -67,8 +65,8 @@ services:
     environment:
       RABBIT_HOST: rabbitmq
     depends_on:
-      - rabbitmq
-
+      rabbitmq:
+        condition: service_healthy
 
   ingestion:
     build:
@@ -79,8 +77,10 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - validation
-      - rabbitmq
+      validation:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   validation:
@@ -92,7 +92,8 @@ services:
     ports:
       - "8002:8002"
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
 
   association:
@@ -102,8 +103,9 @@ services:
     environment:
       RABBIT_HOST: rabbitmq
     depends_on:
-      - rabbitmq
-    command: python src/subscriber.py
+      rabbitmq:
+        condition: service_healthy
+    command: python -m src.subcriber
 
   analyse:
     build:
@@ -115,9 +117,25 @@ services:
     ports:
       - "8003:8003"
     depends_on:
-      - rabbitmq
-      - postgres
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
+
+  detection:
+    build:
+      context: ./services/detection-service
+      dockerfile: Dockerfile
+    environment:
+      RABBIT_HOST: rabbitmq
+      REFERENTIAL_URL: http://referential:8001
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      referential:
+        condition: service_started
+    command: python -m src.consumer
 
 volumes:
   postgres_data:
