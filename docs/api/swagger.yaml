@@ -1,0 +1,870 @@
+openapi: 3.0.3
+info:
+  title: Smart City IoT Administration API
+  version: 1.0.0
+  description: Contrat REST d'administration IoT pour gérer les zones, capteurs et métriques.
+
+servers:
+  - url: http://localhost:8000
+    description: Serveur local
+
+tags:
+  - name: Zones
+    description: Gestion des zones IoT
+  - name: Sensors
+    description: Gestion des capteurs IoT
+  - name: Metrics
+    description: Gestion des mesures des capteurs
+
+paths:
+  /api/v1/zones:
+    get:
+      tags: [Zones]
+      summary: Lister les zones
+      responses:
+        "200":
+          description: Liste des zones retournée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZoneListResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags: [Zones]
+      summary: Créer une zone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ZoneCreate"
+      responses:
+        "201":
+          description: Zone créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZoneResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Zone déjà existante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/zones/{zone_id}:
+    get:
+      tags: [Zones]
+      summary: Récupérer une zone par son identifiant
+      parameters:
+        - $ref: "#/components/parameters/ZoneId"
+      responses:
+        "200":
+          description: Zone trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZoneResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      tags: [Zones]
+      summary: Modifier une zone
+      parameters:
+        - $ref: "#/components/parameters/ZoneId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ZoneUpdate"
+      responses:
+        "200":
+          description: Zone modifiée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZoneResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Zones]
+      summary: Supprimer une zone
+      parameters:
+        - $ref: "#/components/parameters/ZoneId"
+      responses:
+        "200":
+          description: Zone supprimée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/zones/{zone_id}/sensors:
+    post:
+      tags: [Sensors]
+      summary: Enregistrer un capteur dans une zone
+      parameters:
+        - $ref: "#/components/parameters/ZoneId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SensorCreate"
+      responses:
+        "201":
+          description: Capteur créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensorResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Capteur déjà existant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/sensors:
+    get:
+      tags: [Sensors]
+      summary: Lister les capteurs
+      parameters:
+        - name: zoneId
+          in: query
+          required: false
+          schema:
+            type: string
+          example: zone-paris
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, normal, warning, critical, offline]
+          example: active
+      responses:
+        "200":
+          description: Liste des capteurs retournée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensorListResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags: [Sensors]
+      summary: Créer un capteur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SensorCreate"
+      responses:
+        "201":
+          description: Capteur créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensorResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Capteur déjà existant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/sensors/{sensor_id}:
+    get:
+      tags: [Sensors]
+      summary: Récupérer un capteur par son identifiant
+      parameters:
+        - $ref: "#/components/parameters/SensorId"
+      responses:
+        "200":
+          description: Capteur trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          description: Capteur hors ligne
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensorOfflineErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      tags: [Sensors]
+      summary: Modifier un capteur
+      parameters:
+        - $ref: "#/components/parameters/SensorId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SensorUpdate"
+      responses:
+        "200":
+          description: Capteur modifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Sensors]
+      summary: Suppression logique d'un capteur
+      parameters:
+        - $ref: "#/components/parameters/SensorId"
+      responses:
+        "200":
+          description: Capteur supprimé ou désactivé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/sensors/{sensor_id}/metrics:
+    get:
+      tags: [Metrics]
+      summary: Récupérer l'historique des métriques d'un capteur
+      parameters:
+        - $ref: "#/components/parameters/SensorId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/StartDate"
+        - $ref: "#/components/parameters/EndDate"
+      responses:
+        "200":
+          description: Historique des métriques retourné
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/metrics:
+    get:
+      tags: [Metrics]
+      summary: Lister les métriques avec filtres optionnels
+      parameters:
+        - name: sensorId
+          in: query
+          required: false
+          schema:
+            type: string
+          example: sensor-001
+        - name: zoneId
+          in: query
+          required: false
+          schema:
+            type: string
+          example: zone-paris
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/StartDate"
+        - $ref: "#/components/parameters/EndDate"
+      responses:
+        "200":
+          description: Liste des métriques retournée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags: [Metrics]
+      summary: Créer une métrique
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MetricCreate"
+      responses:
+        "201":
+          description: Métrique créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/metrics/{metric_id}:
+    get:
+      tags: [Metrics]
+      summary: Récupérer une métrique par son identifiant
+      parameters:
+        - $ref: "#/components/parameters/MetricId"
+      responses:
+        "200":
+          description: Métrique trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [Metrics]
+      summary: Modifier une métrique
+      parameters:
+        - $ref: "#/components/parameters/MetricId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MetricUpdate"
+      responses:
+        "200":
+          description: Métrique modifiée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Metrics]
+      summary: Supprimer une métrique
+      parameters:
+        - $ref: "#/components/parameters/MetricId"
+      responses:
+        "200":
+          description: Métrique supprimée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  parameters:
+    ZoneId:
+      name: zone_id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: zone-paris
+
+    SensorId:
+      name: sensor_id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: sensor-001
+
+    MetricId:
+      name: metric_id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: metric-a1b2c3d4
+
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 50
+        minimum: 1
+        maximum: 1000
+      example: 50
+
+    StartDate:
+      name: start_date
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      example: "2025-01-01T00:00:00"
+
+    EndDate:
+      name: end_date
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+      example: "2025-01-31T23:59:59"
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    InternalServerError:
+      description: Erreur interne serveur
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    Zone:
+      type: object
+      required: [id, name, latitude, longitude, type, createdAt]
+      properties:
+        id:
+          type: string
+          example: zone-paris
+        name:
+          type: string
+          example: Paris
+        latitude:
+          type: number
+          format: float
+          example: 48.8566
+        longitude:
+          type: number
+          format: float
+          example: 2.3522
+        type:
+          type: string
+          example: urban
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-01-01T10:00:00"
+
+    ZoneCreate:
+      type: object
+      required: [name, latitude, longitude]
+      properties:
+        name:
+          type: string
+          example: Paris
+        latitude:
+          type: number
+          format: float
+          example: 48.8566
+        longitude:
+          type: number
+          format: float
+          example: 2.3522
+        type:
+          type: string
+          example: urban
+
+    ZoneUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Paris Centre
+        latitude:
+          type: number
+          format: float
+          example: 48.8566
+        longitude:
+          type: number
+          format: float
+          example: 2.3522
+        type:
+          type: string
+          example: urban
+
+    Sensor:
+      type: object
+      required: [id, name, type, zoneId, latitude, longitude, status, anomalyStreak]
+      properties:
+        id:
+          type: string
+          example: sensor-001
+        name:
+          type: string
+          example: Capteur pollution
+        type:
+          type: string
+          example: pollution
+        zoneId:
+          type: string
+          example: zone-paris
+        latitude:
+          type: number
+          format: float
+          example: 48.8566
+        longitude:
+          type: number
+          format: float
+          example: 2.3522
+        status:
+          type: string
+          enum: [NORMAL, WARNING, CRITICAL, OFFLINE, active]
+          example: NORMAL
+        anomalyStreak:
+          type: integer
+          example: 0
+        lastValue:
+          type: number
+          nullable: true
+          example: 42.5
+        lastUnit:
+          type: string
+          nullable: true
+          example: µg/m3
+        lastTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-01-01T10:00:00"
+
+    SensorCreate:
+      type: object
+      required: [id, name, type, zoneId, latitude, longitude]
+      properties:
+        id:
+          type: string
+          example: sensor-001
+        name:
+          type: string
+          example: Capteur Air Paris 01
+        type:
+          type: string
+          example: pollution
+        zoneId:
+          type: string
+          example: zone-paris
+        latitude:
+          type: number
+          format: float
+          example: 48.8566
+        longitude:
+          type: number
+          format: float
+          example: 2.3522
+
+    SensorUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Capteur Air Paris Modifié
+        type:
+          type: string
+          example: pollution
+        latitude:
+          type: number
+          format: float
+          example: 48.8566
+        longitude:
+          type: number
+          format: float
+          example: 2.3522
+
+    Metric:
+      type: object
+      required: [id, sensorId, zoneId, type, value, unit, timestamp, isAnomaly]
+      properties:
+        id:
+          type: string
+          example: metric-a1b2c3d4
+        sensorId:
+          type: string
+          example: sensor-001
+        zoneId:
+          type: string
+          example: zone-paris
+        type:
+          type: string
+          example: no2
+        value:
+          type: number
+          format: float
+          example: 42.5
+        unit:
+          type: string
+          example: µg/m3
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-01T10:00:00"
+        isAnomaly:
+          type: boolean
+          example: false
+
+    MetricCreate:
+      type: object
+      required: [sensorId, type, value, unit]
+      properties:
+        sensorId:
+          type: string
+          example: sensor-001
+        type:
+          type: string
+          example: no2
+        value:
+          type: number
+          format: float
+          example: 42.5
+        unit:
+          type: string
+          example: µg/m3
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-01T10:00:00"
+        isAnomaly:
+          type: boolean
+          default: false
+
+    MetricUpdate:
+      type: object
+      properties:
+        value:
+          type: number
+          format: float
+          example: 50.2
+        unit:
+          type: string
+          example: µg/m3
+        isAnomaly:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 404
+        error:
+          oneOf:
+            - type: string
+              example: Ressource introuvable
+            - $ref: "#/components/schemas/ErrorDetail"
+
+    ErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+          example: NOT_FOUND
+        message:
+          type: string
+          example: Ressource introuvable
+        resource:
+          type: string
+          example: /api/v1/sensors/sensor-001
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-01T10:00:00Z"
+        details:
+          type: object
+          nullable: true
+        retryable:
+          type: boolean
+          example: false
+        retryAfterSeconds:
+          type: integer
+          nullable: true
+          example: 60
+
+    SensorOfflineErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 503
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: SENSOR_OFFLINE
+            message:
+              type: string
+              example: Le capteur est actuellement hors ligne
+            resource:
+              type: string
+              example: /api/v1/sensors/sensor-001
+            timestamp:
+              type: string
+              format: date-time
+              example: "2025-01-01T10:00:00Z"
+            details:
+              type: object
+              properties:
+                sensorId:
+                  type: string
+                  example: sensor-001
+                sensorType:
+                  type: string
+                  example: pollution
+                lastSeen:
+                  type: string
+                  nullable: true
+                  example: "2025-01-01T09:50:00Z"
+                offlineSince:
+                  type: string
+                  nullable: true
+                  example: "2025-01-01T09:55:00Z"
+            retryable:
+              type: boolean
+              example: true
+            retryAfterSeconds:
+              type: integer
+              example: 60
+
+    MessageResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: Opération effectuée avec succès
+
+    ZoneResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        data:
+          $ref: "#/components/schemas/Zone"
+        message:
+          type: string
+          example: Zone créée
+
+    ZoneListResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Zone"
+        message:
+          type: string
+          example: 3 zones trouvées
+
+    SensorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        data:
+          $ref: "#/components/schemas/Sensor"
+        message:
+          type: string
+          example: Capteur créé
+
+    SensorListResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sensor"
+        message:
+          type: string
+          example: 3 capteurs trouvés
+
+    MetricResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        data:
+          $ref: "#/components/schemas/Metric"
+        message:
+          type: string
+          example: Métrique créée avec succès
+
+    MetricListResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Metric"
+        message:
+          type: string
+          example: 10 métriques trouvées

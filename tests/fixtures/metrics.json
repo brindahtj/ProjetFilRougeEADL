@@ -1,0 +1,32 @@
+[
+  {
+    "id": "metric-001",
+    "sensorId": "sensor-pollution-001",
+    "zoneId": "zone-paris",
+    "type": "pollution",
+    "value": 12.5,
+    "unit": "µg/m³",
+    "timestamp": "2026-06-30T10:00:00Z",
+    "isAnomaly": false
+  },
+  {
+    "id": "metric-002",
+    "sensorId": "sensor-pollution-001",
+    "zoneId": "zone-paris",
+    "type": "pollution",
+    "value": 65.2,
+    "unit": "µg/m³",
+    "timestamp": "2026-06-30T10:05:00Z",
+    "isAnomaly": true
+  },
+  {
+    "id": "metric-003",
+    "sensorId": "sensor-traffic-001",
+    "zoneId": "zone-paris",
+    "type": "traffic",
+    "value": 0.75,
+    "unit": "jam_factor",
+    "timestamp": "2026-06-30T10:00:00Z",
+    "isAnomaly": false
+  }
+]

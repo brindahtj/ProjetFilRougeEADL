@@ -1,44 +1,47 @@
-import pika
 import json
-import sys
+import pika
+from typing import Any
 
-RABBIT_HOST = "localhost"
-RABBIT_PORT = 5672
-RABBIT_USER = "guest"
-RABBIT_PASS = "guest"
-RABBIT_VHOST = "/"
-EXCHANGE = "logs"
+from Api_ingestion.config import (
+    EXCHANGE,
+    QUEUE,
+    RABBIT_HOST,
+    RABBIT_PORT,
+    RABBIT_USER,
+    RABBIT_PASS,
+    RABBIT_VHOST,
+)
+from Api_ingestion.ports import AlertNotifier
 
-def send_message(trafic, no2):
-    """Envoie un message JSON au publisher."""
-    creds = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
-    params = pika.ConnectionParameters(
+
+class RabbitMQPublisher(AlertNotifier):
+    def __init__(
+        self,
         host=RABBIT_HOST,
         port=RABBIT_PORT,
-        virtual_host=RABBIT_VHOST,
-        credentials=creds,
-    )
+        user=RABBIT_USER,
+        password=RABBIT_PASS,
+        vhost=RABBIT_VHOST,
+    ):
+        self._params = pika.ConnectionParameters(
+            host=host,
+            port=port,
+            virtual_host=vhost,
+            credentials=pika.PlainCredentials(user, password),
+        )
 
-    conn = pika.BlockingConnection(params)
-    ch = conn.channel()
-    ch.exchange_declare(exchange=EXCHANGE, exchange_type="fanout", durable=True)
+    def _connect(self):
+        return pika.BlockingConnection(self._params)
 
-    # Créer le message JSON
-    message = json.dumps({
-        "trafic": trafic,
-        "no2": no2
-    })
+    def publish(self, message_data: Any, routing_key: str = "") -> None:
+        payload = json.dumps(message_data) if isinstance(message_data, (dict, list)) else str(message_data)
+        conn = self._connect()
+        ch = conn.channel()
+        ch.exchange_declare(exchange=EXCHANGE, exchange_type="fanout", durable=True)
+        ch.queue_declare(queue=QUEUE, durable=True)
+        ch.queue_bind(exchange=EXCHANGE, queue=QUEUE)
+        ch.basic_publish(exchange=EXCHANGE, routing_key=routing_key, body=payload)
+        conn.close()
 
-    ch.basic_publish(exchange=EXCHANGE, routing_key="", body=message)
-    print(f"Message envoyé: {message}")
-
-    conn.close()
-
-if __name__ == "__main__":
-    # Utilisation: python publisher.py 45.5 120.3
-    if len(sys.argv) == 3:
-        trafic = float(sys.argv[1])
-        no2 = float(sys.argv[2])
-        send_message(trafic, no2)
-    else:
-        print("Usage: python publisher.py <trafic> <no2>")
+    def notify(self, payload: Any, routing_key: str = "default") -> None:
+        self.publish(payload, routing_key=routing_key)

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "zone-paris",
+    "name": "Paris",
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "type": "urban",
+    "createdAt": "2026-06-30T10:00:00Z"
+  },
+  {
+    "id": "zone-lyon",
+    "name": "Lyon",
+    "latitude": 45.7640,
+    "longitude": 4.8357,
+    "type": "urban",
+    "createdAt": "2026-06-30T10:00:00Z"
+  }
+]

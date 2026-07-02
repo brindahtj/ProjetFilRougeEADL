@@ -1,0 +1,28 @@
+[
+  {
+    "id": "sensor-pollution-001",
+    "name": "Capteur pollution Paris 1",
+    "type": "pollution",
+    "zoneId": "zone-paris",
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "status": "NORMAL",
+    "anomalyStreak": 0,
+    "lastValue": 12.5,
+    "lastUnit": "µg/m³",
+    "lastTimestamp": "2026-06-30T10:00:00Z"
+  },
+  {
+    "id": "sensor-traffic-001",
+    "name": "Capteur trafic Paris 1",
+    "type": "traffic",
+    "zoneId": "zone-paris",
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "status": "WARNING",
+    "anomalyStreak": 2,
+    "lastValue": 0.7,
+    "lastUnit": "jam_factor",
+    "lastTimestamp": "2026-06-30T10:00:00Z"
+  }
+]
