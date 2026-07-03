@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0 # Crucial pour que Mike lise l'historique de gh-pages
 
       - name: Configurer Python
-        uses: actions/actions-setup-python@v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
