@@ -30,7 +30,8 @@ jobs:
       - name: Exécuter le test interactif (Doctest)
         run: |
           cd services/validation-service
-          python -m pytest --doctest-glob="ma-doc-diataxis/docs/**/*.md"
+          # Le "-c /dev/null" désactive la lecture du pyproject.toml pour ce test
+          python -m pytest -c /dev/null --doctest-glob="ma-doc-diataxis/docs/**/*.md"
         env:
           PYTHONPATH: ./services/validation-service
 
