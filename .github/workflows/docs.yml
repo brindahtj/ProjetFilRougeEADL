@@ -1,0 +1,47 @@
+name: CI Documentation
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Important pour que mike puisse voir l'historique des versions
+
+      - name: Configurer Python
+        uses: actions/actions-setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest mkdocs-material mike pydantic fastapi httpx
+          # Ajoute ici tes autres dépendances si app.models en a besoin
+
+      - name: Exécuter le test interactif (Doctest)
+        run: |
+          cd services/validation-service
+          python -m pytest --doctest-glob="ma-doc-diataxis/docs/**/*.md"
+        env:
+          PYTHONPATH: ./services/validation-service
+
+      - name: Configurer Git pour Mike
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Déployer la documentation avec Mike
+        run: |
+          cd services/validation-service/ma-doc-diataxis
+          # Déploie la version dev ou latest automatiquement à chaque commit sur main
+          python -m mike deploy latest "Version Actuelle" --update-aliases --push
