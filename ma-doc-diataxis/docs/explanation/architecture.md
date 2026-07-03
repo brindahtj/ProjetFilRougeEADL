@@ -2,86 +2,84 @@
 
 ## Vue d’ensemble
 
-UrbanHub suit une architecture microservices événementielle.
+UrbanHub suit une architecture microservices orientée événements.
 
-Chaque service a une responsabilité claire afin de limiter le couplage et faciliter le déploiement indépendant, les tests et la maintenance.
+Chaque service est responsable d’un périmètre réduit afin de limiter le couplage, simplifier le déploiement indépendant et rendre les tests plus lisibles.
 
-## Services principaux
+## Schéma global
+
+```mermaid
+flowchart LR
+	sensors[API Capteurs] --> ingestion[ingestion-service]
+	ingestion --> bus1[(RabbitMQ)]
+	bus1 --> validation[validation-service]
+	validation --> bus2[(RabbitMQ)]
+	bus2 --> detection[detection-service]
+	bus2 --> association[association-service]
+	detection --> bus3[(RabbitMQ)]
+	bus3 --> notification[notification-service]
+	notification --> csu[CSU / Système]
+	referential[referential-service] --> detection
+	analyse[analyse-service] <--> db[(PostgreSQL)]
+```
+
+## Rôle des services
 
 ### `ingestion-service`
-- reçoit les données brutes des capteurs
-- prépare les messages à envoyer au pipeline
-- publie les mesures vers le service de validation
+- reçoit les mesures brutes
+- publie les événements d’entrée dans le bus
 
 ### `validation-service`
-- contrôle la structure des messages
-- vérifie les champs obligatoires
-- valide les types et les valeurs
-- rejette les données invalides
+- consomme les mesures brutes issues de l’ingestion
+- vérifie la structure, les champs obligatoires et les valeurs
+- republie les mesures validées dans le bus
 
 ### `detection-service`
 - consomme les mesures validées
-- compare les valeurs aux seuils
+- compare les valeurs aux seuils du référentiel
 - publie une alerte si un seuil est dépassé
 
 ### `association-service`
-- regroupe ou associe des données selon des règles métier
+- consomme les mesures validées
+- regroupe les mesures selon des règles métier
 - produit des événements corrélés
 
-### `analyse-service`
-- expose les corrélations et analyses via une API
-- interroge la base de données pour restituer l’historique
-
 ### `notification-service`
-- consomme les alertes
-- notifie un système externe, par exemple un CSU
-- journalise les notifications envoyées
+- consomme les alertes émises par la détection
+- transmet les notifications à un système externe
 
 ### `referential-service`
 - fournit les seuils et règles métier
-- centralise les données de référence utilisées par les autres services
+- sert de source de référence aux services consommateurs
+
+### `analyse-service`
+- persiste et expose les analyses métiers
+- s’appuie sur PostgreSQL pour la consultation
 
 ## Bus d’événements
 
-RabbitMQ joue le rôle de bus de messages entre les services.
+RabbitMQ est le point d’échange central.
 
-Il permet :
+Flux logique documenté:
+- `ingestion-service` publie les données brutes
+- `validation-service` consomme ces données, les contrôle puis republie les données validées
+- `detection-service` et `association-service` consomment les données validées
+- `notification-service` consomme les alertes de `detection-service`
+
+Ce découpage permet:
 - le découplage entre producteurs et consommateurs
 - le traitement asynchrone
-- la scalabilité horizontale
-- la résilience face aux pics de charge
+- la montée en charge par service
+- une meilleure isolation des responsabilités
 
 ## Stockage
 
-Le projet s’appuie sur PostgreSQL, et selon le contexte du projet, éventuellement TimescaleDB pour les données temporelles.
-
-Le stockage sert à :
-- conserver les mesures
-- historiser les alertes
-- conserver les corrélations
-- permettre l’analyse et la consultation
-
-## Flux de traitement
-
-1. un capteur envoie une mesure brute
-2. la mesure est reçue par le service d’ingestion
-3. le service de validation contrôle le message
-4. si la mesure est valide, elle est publiée dans RabbitMQ
-5. le service de détection consomme la mesure
-6. si un seuil est dépassé, une alerte est publiée
-7. le service de notification transmet l’alerte au CSU
-8. les services d’analyse et d’association traitent les données corrélées
+PostgreSQL est utilisé pour les données persistantes et les usages de consultation.
 
 ## Pourquoi cette architecture ?
 
-Cette architecture a été choisie pour :
-
-- séparer les responsabilités
-- faciliter le développement en équipe
-- rendre les services testables indépendamment
-- permettre l’évolution d’un service sans casser les autres
-- supporter une charge croissante
-
-## Conclusion
-
-UrbanHub est conçu comme un système modulaire, extensible et orienté événements.
+- séparation claire des responsabilités
+- déploiement indépendant des services
+- meilleure testabilité
+- évolutivité du système
+- tolérance améliorée aux pics de charge

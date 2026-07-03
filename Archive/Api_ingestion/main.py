@@ -296,7 +296,7 @@ def get_pollution_stats(
 # Endpoints Trafic
 # ─────────────────────────────────────────────────────────────────────────────
 
-@app.get("/traffic/latest", response_model=List[TrafficDataPoint], tags=["Traffic"])
+@app.get("/traffic", response_model=List[TrafficDataPoint], tags=["Traffic"])
 def get_latest_traffic(
     city: Optional[str] = Query("Paris", description="Ville (défaut: Paris)"),
     zone: Optional[str] = Query(None, description="Filtrer par zone (Paris Nord/Sud/Est/Ouest)"),

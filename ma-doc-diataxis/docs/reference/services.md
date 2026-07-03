@@ -1,4 +1,47 @@
-# Dépendances des services
+# Services UrbanHub
+
+## Ingestion Service
+
+- reçoit les mesures brutes
+- appelle le service de validation
+- renvoie les résultats de traitement
+
+## Validation Service
+
+- valide les mesures IoT
+- publie les mesures acceptées dans RabbitMQ
+- expose `GET /health`, `POST /validate` et `POST /validate-batch`
+
+## Referential Service
+
+- expose les seuils et règles métier
+- sert de source de vérité pour les autres services
+- fournit notamment `GET /thresholds`
+
+## Detection Service
+
+- consomme les mesures validées
+- compare les valeurs aux seuils du référentiel
+- publie des alertes dans RabbitMQ
+
+## Association Service
+
+- associe les mesures pollution et trafic
+- produit des événements corrélés
+
+## Analyse Service
+
+- expose les analyses et corrélations via une API
+- s’appuie sur PostgreSQL
+
+## Notification Service
+
+- consomme les alertes
+- transmet les notifications à un système externe
+
+## Bus de messages
+
+RabbitMQ sert de bus événementiel entre les services producteurs et consommateurs.# Dépendances des services
 
 ## `ingestion-service`
 ### Rôle

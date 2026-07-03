@@ -4,11 +4,13 @@ theme:
 
 nav:
   - Accueil: index.md
-  - Tutoriels (Apprentissage):
+  - Tutoriels:
       - Premier pas: tutorials/getting-started.md
-  - Guides pratiques (Objectifs):
+  - Guides pratiques:
       - Comment configurer X: how-to/configure-x.md
-  - Référence (Information):
+  - Référence:
       - API-Documentation: reference/api.md
-  - Explication (Compréhension):
+  - Explications:
       - Pourquoi cette architecture: explanation/architecture.md
+  - Rapports d'incidents:
+      - Incident Juin 2026: reports/june_incident.md
