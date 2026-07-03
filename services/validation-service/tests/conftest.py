@@ -59,8 +59,13 @@ def out_of_range_measurement():
 @pytest.fixture
 def invalid_type_measurement():
     """Fixture : type invalide."""
-    return RawMeasurement(type="unknown", city="paris", latitude=48.8566, longitude=2.3522)
-
+    # model_construct permet de contourner la validation stricte de Pydantic
+    return RawMeasurement.model_construct(
+        type="unknown",
+        city="paris",
+        latitude=48.8566,
+        longitude=2.3522
+    )
 
 @pytest.fixture
 def mock_rabbit_connection():

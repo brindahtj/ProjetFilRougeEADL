@@ -62,6 +62,17 @@ class ValidationResult(BaseModel):
     valid: bool = Field(
         ..., description="Indicateur de validité cohérent avec state"
     )
+    aberrant: bool = Field(
+        False,
+        description=(
+            "True si CRITICAL à cause d'une valeur physiquement implausible "
+            "(hors plage absolue), par opposition à une donnée simplement "
+            "incomplète (champ requis manquant)."
+        ),
+    )
+    sensor_id: Optional[str] = Field(
+        None, description="Identifiant du capteur à l'origine de la mesure, si fourni"
+    )
     measurement: Optional[RawMeasurement] = Field(
         None, description="Mesure validée (si valide)"
     )
@@ -77,6 +88,8 @@ class ValidationResponse(BaseModel):
     """Réponse API pour une validation simple."""
     state: Literal["NORMAL", "CRITICAL"]
     valid: bool
+    aberrant: bool = False
+    sensor_id: Optional[str] = None
     message: str
     routing_key: Optional[str] = None
     errors: list[str] = []

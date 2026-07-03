@@ -86,11 +86,11 @@ def health():
     summary="Valider une mesure unique",
     description="""
     Valide une mesure brute (pollution ou trafic).
-    
+
     ### États possibles
     - **NORMAL** : donnée complète et conforme → publication sur RabbitMQ
     - **CRITICAL** : donnée incomplète ou aberrante → rejet et mise de côté
-    
+
     ### Validations effectuées
     - Type de mesure (pollution ou traffic)
     - Champs obligatoires (city, latitude, longitude, timestamp)
@@ -130,16 +130,25 @@ def health():
         },
     },
 )
-def validate(measurement: RawMeasurement):
-    """Valide une mesure et la publie si NORMAL."""
+def validate(measurement: RawMeasurement, sensor_id: str | None = None):
+    """Valide une mesure et la publie si NORMAL.
+
+    `sensor_id` (optionnel, query param) : identifiant du capteur à l'origine
+    de la mesure, transmis par `ingestion-service` qui le connaît déjà via
+    sa propre route. Renvoyé tel quel dans la réponse, avec le flag
+    `aberrant` qui permet à `ingestion-service` de savoir s'il doit
+    considérer ce capteur en anomalie.
+    """
     try:
-        result = MeasurementValidator.validate(measurement)
+        result = MeasurementValidator.validate(measurement, sensor_id=sensor_id)
 
         if result.state == "NORMAL" and result.measurement:
             _publish_measurement(result.measurement)
             return ValidationResponse(
                 state=result.state,
                 valid=True,
+                aberrant=False,
+                sensor_id=sensor_id,
                 message="Measurement published to event bus",
                 routing_key=result.measurement.type,
                 errors=result.errors,
@@ -149,6 +158,8 @@ def validate(measurement: RawMeasurement):
             return ValidationResponse(
                 state=result.state,
                 valid=False,
+                aberrant=result.aberrant,
+                sensor_id=sensor_id,
                 message="Measurement rejected (incomplete or anomalous data)",
                 errors=result.errors,
                 warnings=result.warnings,
@@ -165,7 +176,7 @@ def validate(measurement: RawMeasurement):
     summary="Valider un lot de mesures",
     description="""
     Valide un lot de mesures en une seule requête.
-    
+
     Retourne le nombre total, acceptées (NORMAL) et rejetées (CRITICAL).
     """,
     responses={
