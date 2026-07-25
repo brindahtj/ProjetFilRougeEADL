@@ -1,10 +1,11 @@
 import json
 import pika
+import logging
 from typing import Any
 
 from Api_ingestion.config import (
     EXCHANGE,
-    QUEUE,
+    RABBIT_QUEUE,
     RABBIT_HOST,
     RABBIT_PORT,
     RABBIT_USER,
@@ -13,7 +14,7 @@ from Api_ingestion.config import (
 )
 from Api_ingestion.ports import AlertNotifier
 
-
+log = logging.getLogger(__name__)
 class RabbitMQPublisher(AlertNotifier):
     def __init__(
         self,
@@ -38,10 +39,20 @@ class RabbitMQPublisher(AlertNotifier):
         conn = self._connect()
         ch = conn.channel()
         ch.exchange_declare(exchange=EXCHANGE, exchange_type="fanout", durable=True)
-        ch.queue_declare(queue=QUEUE, durable=True)
-        ch.queue_bind(exchange=EXCHANGE, queue=QUEUE)
+        ch.queue_declare(queue=RABBIT_QUEUE, durable=True)
+        ch.queue_bind(exchange=EXCHANGE, queue=RABBIT_QUEUE)
         ch.basic_publish(exchange=EXCHANGE, routing_key=routing_key, body=payload)
         conn.close()
 
-    def notify(self, payload: Any, routing_key: str = "default") -> None:
-        self.publish(payload, routing_key=routing_key)
+    def notify(self, payload: Any, routing_key: str = "default") -> bool:
+        try:
+            self.publish(payload, routing_key=routing_key)
+            return True
+
+        except pika.exceptions.AMQPError as exc:
+            log.error(
+                "Échec de publication RabbitMQ sur la route %s : %s",
+                routing_key,
+                exc,
+            )
+            return False
