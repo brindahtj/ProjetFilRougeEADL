@@ -4,7 +4,12 @@ from datetime import datetime
 from pathlib import Path
 
 from Api_ingestion.api.routes import init_router
-from Api_ingestion.domain import Sensor, SensorStatus
+from Api_ingestion.domain.models import (
+    Sensor,
+    SensorStatus,
+    PollutionReading,
+    TrafficReading,
+)
 from Api_ingestion.sensor_processor import SensorStreamProcessor
 
 EXAMPLES_PATH = Path(__file__).resolve().parents[1] / "docs" / "api" / "examples.json"

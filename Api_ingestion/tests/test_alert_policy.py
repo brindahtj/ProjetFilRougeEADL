@@ -1,4 +1,4 @@
-from contracts import AirQualityAlertEvent
+from Api_ingestion.models.contracts import AirQualityAlertEvent
 
 
 class AlertPolicy:

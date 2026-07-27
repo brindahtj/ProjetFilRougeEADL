@@ -7,6 +7,7 @@
     "type": "urban",
     "createdAt": "2026-06-30T10:00:00Z"
   },
+
   "sensors": [
     {
       "id": "sensor-pollution-001",
@@ -16,6 +17,7 @@
       "anomalyStreak": 2
     }
   ],
+
   "metrics": [
     {
       "sensorId": "sensor-pollution-001",
@@ -25,5 +27,30 @@
       "timestamp": "2026-06-30T10:00:00Z",
       "isAnomaly": true
     }
-  ]
+  ],
+
+  "zone_create_payload": {
+    "name": "VilleTest",
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "type": "urban"
+  },
+
+  "sensor_create_payload": {
+    "id": "sensor-pollution-001",
+    "name": "Capteur pollution Paris",
+    "type": "pollution",
+    "zoneId": "zone-paris",
+    "latitude": 48.8566,
+    "longitude": 2.3522
+  },
+
+  "metric_create_payload": {
+    "sensorId": "sensor-pollution-001",
+    "type": "pollution",
+    "value": 65.2,
+    "unit": "µg/m³",
+    "timestamp": "2026-06-30T10:00:00Z",
+    "isAnomaly": true
+  }
 }

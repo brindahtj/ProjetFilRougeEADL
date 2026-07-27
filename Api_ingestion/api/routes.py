@@ -198,6 +198,7 @@ class APIRouter:
             return {"status": 500, "error": str(e)}
 
     # ===== METRICS =====
+    @staticmethod
     def parse_date(value: Optional[str]) -> Optional[datetime]:
         """Convertit une chaîne ISO en datetime."""
         if value is None:

@@ -14,7 +14,12 @@ from Api_ingestion.constants import (
     MIN_ANOMALIES_CRITICAL,
     MIN_ANOMALIES_WARNING,
 )
-from Api_ingestion.domain import PollutionReading, TrafficReading
+from Api_ingestion.domain.models import (
+    Sensor,
+    SensorStatus,
+    PollutionReading,
+    TrafficReading,
+)
 from Api_ingestion.exceptions import ApiClientError, DataValidationError
 from Api_ingestion.http_client import HttpClient
 

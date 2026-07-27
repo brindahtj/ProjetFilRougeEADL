@@ -3,7 +3,12 @@ from typing import Dict, List, Optional
 from datetime import datetime
 from uuid import uuid4
 
-from Api_ingestion.domain import Sensor, SensorStatus, PollutionReading, TrafficReading
+from Api_ingestion.domain.models import (
+    Sensor,
+    SensorStatus,
+    PollutionReading,
+    TrafficReading,
+)
 from Api_ingestion.monitoring import metrics
 from Api_ingestion.sensor_processor import SensorStreamProcessor
 from Api_ingestion.api.schemas import ZoneSchema, SensorSchema, MetricSchema, MetricCreateSchema
@@ -160,14 +165,18 @@ class SensorController:
             id=sensor_id,
             name=f"Capteur {sensor.sensor_type}",
             type=sensor.sensor_type,
-            zoneId=f"zone-{sensor_id.split('_')[1].lower() if '_' in sensor_id else 'unknown'}",
+            zoneId=(
+                f"zone-{sensor_id.split('_')[1].lower()}"
+                if "_" in sensor_id
+                else "zone-unknown"
+            ),
             latitude=sensor.latitude or 0.0,
             longitude=sensor.longitude or 0.0,
             status=sensor.status.value,
             anomalyStreak=sensor.anomaly_streak,
-            lastValue=sensor.last_value,
-            lastUnit=sensor.last_unit,
-            lastTimestamp=sensor.last_timestamp,
+            lastValue=getattr(sensor, "last_value", None),
+            lastUnit=getattr(sensor, "last_unit", None),
+            lastTimestamp=getattr(sensor, "last_timestamp", None),
         )
 
 

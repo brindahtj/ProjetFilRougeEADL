@@ -2,7 +2,12 @@ import logging
 from typing import Dict, Optional
 from datetime import datetime
 
-from Api_ingestion.domain import Sensor, SensorStatus, PollutionReading, TrafficReading
+from Api_ingestion.domain.models import (
+    Sensor,
+    SensorStatus,
+    PollutionReading,
+    TrafficReading,
+)
 
 log = logging.getLogger(__name__)
 
