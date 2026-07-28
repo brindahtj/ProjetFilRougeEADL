@@ -2,8 +2,14 @@ name: CI Documentation
 
 on:
   push:
-    branches:
-      - Refacto
+    paths:
+      - 'ma-doc-diataxis/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+        branches: [ main, staging , Refacto]
+        paths:
+          - 'ma-doc-diataxis/**'
+          - '.github/workflows/docs.yml'
 
 permissions:
   contents: write
@@ -25,8 +31,7 @@ jobs:
       - name: Installer les dépendances
         run: |
             python -m pip install --upgrade pip
-            # Ajout de pika dans la liste
-            pip install pytest pytest-cov mkdocs-material mike pydantic fastapi httpx pika
+            pip install pytest pytest-cov mkdocs-material mike pydantic fastapi httpx python-dotenv
 
       - name: Exécuter le test interactif (Doctest)
         run: |
@@ -43,11 +48,8 @@ jobs:
 
       - name: Déployer la documentation avec Mike
         run: |
-          # On se place là où se trouve ton mkdocs.yml
           cd services/validation-service/ma-doc-diataxis
           
-          # On s'assure que Mike récupère la branche gh-pages existante pour ne pas l'écraser
           git fetch origin gh-pages:gh-pages || true
           
-          # Compilation et push
           python -m mike deploy latest "Version Actuelle" --update-aliases --push
