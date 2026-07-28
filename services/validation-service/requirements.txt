@@ -8,3 +8,4 @@ pytest-cov==4.1.0
 httpx==0.25.2
 ruff==0.1.8
 sonarqube-api==1.2.0
+python-dotenv==0.21.0
