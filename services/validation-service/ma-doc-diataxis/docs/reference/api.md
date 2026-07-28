@@ -5,25 +5,7 @@
 ### POST `/validate`
 Valide une mesure brute.
 
-#### Exemple
-```json
-{
-  "type": "pollution",
-  "city": "Paris",
-  "zone": "nord",
-  "pollutant": "no2",
-  "value": 220
-}
-```
-```python
 
->>> from app.main import app
->>> from app.models import RawMeasurement
->>> # Si on crée une mesure valide, Pydantic ne lève aucune erreur
->>> mesure = RawMeasurement(type="pollution", city="Paris", pollutant="no2", value=220)
->>> mesure.city
-'Paris'
-```
 valid: true si la mesure est acceptable
 valid: false sinon
  

@@ -1295,22 +1295,7 @@
 <h3 id="post-validate">POST <code>/validate</code></h3>
 <p>Valide une mesure brute.</p>
 <h4 id="exemple">Exemple</h4>
-<pre><code class="language-json">{
-  &quot;type&quot;: &quot;pollution&quot;,
-  &quot;city&quot;: &quot;Paris&quot;,
-  &quot;zone&quot;: &quot;nord&quot;,
-  &quot;pollutant&quot;: &quot;no2&quot;,
-  &quot;value&quot;: 220
-}
-</code></pre>
-<pre><code class="language-python">
-&gt;&gt;&gt; from app.main import app
-&gt;&gt;&gt; from app.models import RawMeasurement
-&gt;&gt;&gt; # Si on crée une mesure valide, Pydantic ne lève aucune erreur
-&gt;&gt;&gt; mesure = RawMeasurement(type=&quot;pollution&quot;, city=&quot;Paris&quot;, pollutant=&quot;no2&quot;, value=220)
-&gt;&gt;&gt; mesure.city
-'Paris'
-</code></pre>
+
 <p>valid: true si la mesure est acceptable
 valid: false sinon</p>
 <h2 id="detection-service">detection-service</h2>
