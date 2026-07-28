@@ -1,4 +1,4 @@
-"""Tests des endpoints API."""
+from unittest.mock import patch
 
 import pytest
 from app.main import app
@@ -78,8 +78,9 @@ class TestBatchEndpoint:
             valid_pollution_measurement.model_dump(),
             incomplete_measurement.model_dump()
         ]
-        response = client.post("/validate-batch", json=measurements)
-        assert response.status_code == 200
+        with patch("services.validation-service.app.main._publish_measurement") as mock_publish:
+            response = client.post("/validate-batch", json=measurements)
+            assert response.status_code == 200
         data = response.json()
         assert data["total"] == 2
         assert data["accepted"] == 1
