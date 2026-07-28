@@ -6,17 +6,7 @@
 Valide une mesure brute.
 
 #### Exemple
-```json
-{
-  "type": "pollution",
-  "city": "Paris",
-  "zone": "nord",
-  "pollutant": "no2",
-  "value": 220
-}
-```
-* `valid: true` si la mesure est acceptable
-* `valid: false` sinon
+
  
 ## detection-service
 ### Rôle
