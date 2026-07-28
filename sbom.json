@@ -1,0 +1,329 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.7",
+  "serialNumber": "urn:uuid:c76e3051-5297-4b4b-b05e-b16f4be7be8a",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-27T14:58:24+00:00",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "manufacturer": {
+            "name": "Aqua Security Software Ltd."
+          },
+          "group": "aquasecurity",
+          "name": "trivy",
+          "version": "0.72.0"
+        }
+      ]
+    },
+    "component": {
+      "bom-ref": "dd0926f6-4772-4f07-bd26-43a98622f538",
+      "type": "application",
+      "name": "/src",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:SchemaVersion",
+          "value": "2"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "632141b8-8dc8-4c54-b29d-d7ed89ea29da",
+      "type": "application",
+      "name": "services/validation-service/requirements.txt",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:Class",
+          "value": "lang-pkgs"
+        },
+        {
+          "name": "aquasecurity:trivy:Type",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/fastapi@0.104.1",
+      "type": "library",
+      "name": "fastapi",
+      "version": "0.104.1",
+      "purl": "pkg:pypi/fastapi@0.104.1",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/httpx@0.25.2",
+      "type": "library",
+      "name": "httpx",
+      "version": "0.25.2",
+      "purl": "pkg:pypi/httpx@0.25.2",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pika@1.3.2",
+      "type": "library",
+      "name": "pika",
+      "version": "1.3.2",
+      "purl": "pkg:pypi/pika@1.3.2",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pydantic@2.5.0",
+      "type": "library",
+      "name": "pydantic",
+      "version": "2.5.0",
+      "purl": "pkg:pypi/pydantic@2.5.0",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pytest-asyncio@0.21.1",
+      "type": "library",
+      "name": "pytest-asyncio",
+      "version": "0.21.1",
+      "purl": "pkg:pypi/pytest-asyncio@0.21.1",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pytest-cov@4.1.0",
+      "type": "library",
+      "name": "pytest-cov",
+      "version": "4.1.0",
+      "purl": "pkg:pypi/pytest-cov@4.1.0",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pytest@7.4.3",
+      "type": "library",
+      "name": "pytest",
+      "version": "7.4.3",
+      "purl": "pkg:pypi/pytest@7.4.3",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/ruff@0.1.8",
+      "type": "library",
+      "name": "ruff",
+      "version": "0.1.8",
+      "purl": "pkg:pypi/ruff@0.1.8",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/sonarqube-api@1.2.0",
+      "type": "library",
+      "name": "sonarqube-api",
+      "version": "1.2.0",
+      "purl": "pkg:pypi/sonarqube-api@1.2.0",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/uvicorn@0.24.0",
+      "type": "library",
+      "name": "uvicorn",
+      "version": "0.24.0",
+      "purl": "pkg:pypi/uvicorn@0.24.0",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "632141b8-8dc8-4c54-b29d-d7ed89ea29da",
+      "dependsOn": [
+        "pkg:pypi/fastapi@0.104.1",
+        "pkg:pypi/httpx@0.25.2",
+        "pkg:pypi/pika@1.3.2",
+        "pkg:pypi/pydantic@2.5.0",
+        "pkg:pypi/pytest-asyncio@0.21.1",
+        "pkg:pypi/pytest-cov@4.1.0",
+        "pkg:pypi/pytest@7.4.3",
+        "pkg:pypi/ruff@0.1.8",
+        "pkg:pypi/sonarqube-api@1.2.0",
+        "pkg:pypi/uvicorn@0.24.0"
+      ]
+    },
+    {
+      "ref": "dd0926f6-4772-4f07-bd26-43a98622f538",
+      "dependsOn": [
+        "632141b8-8dc8-4c54-b29d-d7ed89ea29da"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/fastapi@0.104.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/httpx@0.25.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/pika@1.3.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/pydantic@2.5.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/pytest-asyncio@0.21.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/pytest-cov@4.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/pytest@7.4.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/ruff@0.1.8",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/sonarqube-api@1.2.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/uvicorn@0.24.0",
+      "dependsOn": []
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2025-71176",
+      "source": {
+        "name": "ghsa",
+        "url": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "amazon"
+          },
+          "severity": "medium"
+        },
+        {
+          "source": {
+            "name": "ghsa"
+          },
+          "score": 6.8,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:L"
+        },
+        {
+          "source": {
+            "name": "redhat"
+          },
+          "score": 6.8,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:L"
+        }
+      ],
+      "cwes": [
+        379
+      ],
+      "description": "pytest through 9.0.2 on UNIX relies on directories with the /tmp/pytest-of-{user} name pattern, which allows local users to cause a denial of service or possibly gain privileges.",
+      "recommendation": "Upgrade pytest to version 9.0.3",
+      "advisories": [
+        {
+          "url": "https://avd.aquasec.com/nvd/cve-2025-71176"
+        },
+        {
+          "url": "https://access.redhat.com/security/cve/CVE-2025-71176"
+        },
+        {
+          "url": "https://github.com/pytest-dev/pytes"
+        },
+        {
+          "url": "https://github.com/pytest-dev/pytest/commit/95d8423bd24992deea5b9df32555fa1741679e2c"
+        },
+        {
+          "url": "https://github.com/pytest-dev/pytest/issues/13669"
+        },
+        {
+          "url": "https://github.com/pytest-dev/pytest/pull/14343"
+        },
+        {
+          "url": "https://github.com/pytest-dev/pytest/releases/tag/9.0.3"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-71176"
+        },
+        {
+          "url": "https://www.cve.org/CVERecord?id=CVE-2025-71176"
+        },
+        {
+          "url": "https://www.openwall.com/lists/oss-security/2026/01/21/5"
+        }
+      ],
+      "published": "2026-01-22T05:16:17+00:00",
+      "updated": "2026-06-17T10:03:47+00:00",
+      "affects": [
+        {
+          "ref": "pkg:pypi/pytest@7.4.3",
+          "versions": [
+            {
+              "version": "7.4.3",
+              "status": "affected"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
