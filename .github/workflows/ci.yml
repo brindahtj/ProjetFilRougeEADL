@@ -17,6 +17,9 @@ jobs:
 
   quality-and-tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/validation-service
     steps:
       - uses: actions/checkout@v4
 
@@ -127,7 +130,7 @@ jobs:
         id: build-publish
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: services/validation-service
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
