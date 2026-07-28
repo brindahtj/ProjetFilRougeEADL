@@ -15,8 +15,8 @@ Valide une mesure brute.
   "value": 220
 }
 ```
-valid: true si la mesure est acceptable
-valid: false sinon
+* `valid: true` si la mesure est acceptable
+* `valid: false` sinon
  
 ## detection-service
 ### Rôle
