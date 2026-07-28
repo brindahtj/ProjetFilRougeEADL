@@ -2,7 +2,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from app.models import RawMeasurement
+from dotenv import load_dotenv
 
+load_dotenv()
 
 @pytest.fixture
 def valid_pollution_measurement():
