@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
 import pytest
-from app.main import app
 from fastapi.testclient import TestClient
+
+from app.main import app
 
 
 @pytest.fixture
@@ -78,7 +79,7 @@ class TestBatchEndpoint:
             valid_pollution_measurement.model_dump(),
             incomplete_measurement.model_dump()
         ]
-        with patch("services.validation-service.app.main._publish_measurement") as mock_publish:
+        with patch("app.main._publish_measurement") as mock_publish:
             response = client.post("/validate-batch", json=measurements)
             assert response.status_code == 200
         data = response.json()
