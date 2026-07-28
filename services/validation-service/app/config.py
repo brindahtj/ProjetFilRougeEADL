@@ -1,10 +1,10 @@
 from os import getenv
 
-RABBIT_HOST = getenv("RABBIT_HOST", "rabbitmq")
-RABBIT_PORT = int(getenv("RABBIT_PORT", "5672"))
-RABBIT_USER = getenv("RABBIT_USER", "guest")
-RABBIT_PASS = getenv("RABBIT_PASS", "guest")
-EXCHANGE = getenv("EXCHANGE", "urbanhub")
+RABBIT_HOST = getenv("RABBIT_HOST")
+RABBIT_PORT = int(getenv("RABBIT_PORT"))
+RABBIT_USER = getenv("RABBIT_USER")
+RABBIT_PASS = getenv("RABBIT_PASS")
+EXCHANGE = getenv("EXCHANGE")
 
 # Thresholds for validation
 LATITUDE_MIN, LATITUDE_MAX = -90, 90
