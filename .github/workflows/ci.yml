@@ -115,7 +115,7 @@ jobs:
       - name: Build Local Image for Scanning
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: services/validation-service
           file: services/validation-service/Dockerfile
           load: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
