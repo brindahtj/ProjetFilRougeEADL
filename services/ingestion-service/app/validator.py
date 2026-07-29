@@ -2,9 +2,17 @@ from datetime import datetime, timedelta, timezone
 from .models import RawMeasurement, ValidationResult
 from .state import MeasurementStateMachine
 from .config import (
-    LATITUDE_MIN, LATITUDE_MAX, LONGITUDE_MIN, LONGITUDE_MAX,
-    POLLUTION_ALLOWED, POLLUTION_VALUE_MIN, POLLUTION_VALUE_MAX,
-    TRAFFIC_Q_MIN, TRAFFIC_Q_MAX, CITIES_ALLOWED, ZONES_ALLOWED
+    LATITUDE_MIN,
+    LATITUDE_MAX,
+    LONGITUDE_MIN,
+    LONGITUDE_MAX,
+    POLLUTION_ALLOWED,
+    POLLUTION_VALUE_MIN,
+    POLLUTION_VALUE_MAX,
+    TRAFFIC_Q_MIN,
+    TRAFFIC_Q_MAX,
+    CITIES_ALLOWED,
+    ZONES_ALLOWED,
 )
 import logging
 
@@ -24,7 +32,9 @@ class MeasurementValidator:
     """
 
     @staticmethod
-    def validate(measurement: RawMeasurement, sensor_id: str | None = None) -> ValidationResult:
+    def validate(
+        measurement: RawMeasurement, sensor_id: str | None = None
+    ) -> ValidationResult:
         """Valide une mesure brute et détermine son état."""
         state_machine = MeasurementStateMachine()
         aberrant = {"flag": False}
@@ -32,9 +42,13 @@ class MeasurementValidator:
         MeasurementValidator._validate_type(measurement, state_machine)
         MeasurementValidator._validate_common(measurement, state_machine, aberrant)
         MeasurementValidator._validate_timestamp(measurement, state_machine)
-        MeasurementValidator._validate_type_specific(measurement, state_machine, aberrant)
+        MeasurementValidator._validate_type_specific(
+            measurement, state_machine, aberrant
+        )
 
-        return MeasurementValidator._build_result(measurement, state_machine, aberrant["flag"], sensor_id)
+        return MeasurementValidator._build_result(
+            measurement, state_machine, aberrant["flag"], sensor_id
+        )
 
     @staticmethod
     def _validate_type(
@@ -46,7 +60,9 @@ class MeasurementValidator:
 
     @staticmethod
     def _validate_common(
-        measurement: RawMeasurement, state_machine: MeasurementStateMachine, aberrant: dict
+        measurement: RawMeasurement,
+        state_machine: MeasurementStateMachine,
+        aberrant: dict,
     ) -> None:
         """Validations communes à tous les types de mesures."""
         if measurement.city:
@@ -63,14 +79,18 @@ class MeasurementValidator:
 
         if measurement.latitude is not None:
             if not (LATITUDE_MIN <= measurement.latitude <= LATITUDE_MAX):
-                state_machine.add_error(f"latitude out of range: {measurement.latitude}")
+                state_machine.add_error(
+                    f"latitude out of range: {measurement.latitude}"
+                )
                 aberrant["flag"] = True
         else:
             state_machine.add_error("latitude is required")
 
         if measurement.longitude is not None:
             if not (LONGITUDE_MIN <= measurement.longitude <= LONGITUDE_MAX):
-                state_machine.add_error(f"longitude out of range: {measurement.longitude}")
+                state_machine.add_error(
+                    f"longitude out of range: {measurement.longitude}"
+                )
                 aberrant["flag"] = True
         else:
             state_machine.add_error("longitude is required")
@@ -92,7 +112,9 @@ class MeasurementValidator:
 
     @staticmethod
     def _validate_type_specific(
-        measurement: RawMeasurement, state_machine: MeasurementStateMachine, aberrant: dict
+        measurement: RawMeasurement,
+        state_machine: MeasurementStateMachine,
+        aberrant: dict,
     ) -> None:
         """Valide les champs spécifiques au type de mesure."""
         if measurement.type == "pollution":
@@ -166,7 +188,9 @@ class MeasurementValidator:
                 state_machine.get_errors(),
             )
         else:
-            log.warning("✗ [%s] Validation failed: %s", state_name, state_machine.get_errors())
+            log.warning(
+                "✗ [%s] Validation failed: %s", state_name, state_machine.get_errors()
+            )
 
         return ValidationResult(
             state=state_name,

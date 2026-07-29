@@ -21,13 +21,17 @@ _processor = SensorStreamProcessor(validation_service_url=VALIDATION_SERVICE_URL
 
 
 @app.exception_handler(InvalidSensorIdError)
-def handle_invalid_sensor_id(request: Request, exc: InvalidSensorIdError) -> JSONResponse:
+def handle_invalid_sensor_id(
+    request: Request, exc: InvalidSensorIdError
+) -> JSONResponse:
     """Identifiant de capteur malformé → 400 Bad Request."""
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 @app.exception_handler(MetricValidationError)
-def handle_metric_validation_error(request: Request, exc: MetricValidationError) -> JSONResponse:
+def handle_metric_validation_error(
+    request: Request, exc: MetricValidationError
+) -> JSONResponse:
     """Flux de métriques sémantiquement invalide → 422 Unprocessable Entity."""
     return JSONResponse(status_code=422, content={"detail": str(exc)})
 
@@ -60,7 +64,9 @@ def health():
       `validation-service`, état du capteur ramené vers NORMAL.
     """,
 )
-def post_sensor_metrics(sensor_id: str, metrics: list[SensorMetricIn]) -> SensorMetricsResult:
+def post_sensor_metrics(
+    sensor_id: str, metrics: list[SensorMetricIn]
+) -> SensorMetricsResult:
     result = _processor.process(sensor_id, metrics)
     return SensorMetricsResult(**result)
 

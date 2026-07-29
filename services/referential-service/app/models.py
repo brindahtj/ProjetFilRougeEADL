@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
+
 class ThresholdResponse(BaseModel):
     id: int
     key: str
@@ -17,6 +18,7 @@ class ThresholdResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class ThresholdCreate(BaseModel):
     key: str

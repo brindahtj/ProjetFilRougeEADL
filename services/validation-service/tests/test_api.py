@@ -31,10 +31,7 @@ class TestValidateEndpoint:
         self, client, valid_pollution_measurement, mock_rabbit_connection
     ):
         """Valider une mesure pollution valide → 200 NORMAL."""
-        response = client.post(
-            "/validate",
-            json=valid_pollution_measurement.model_dump()
-        )
+        response = client.post("/validate", json=valid_pollution_measurement.model_dump())
         assert response.status_code == 200
         data = response.json()
         assert data["state"] == "NORMAL"
@@ -45,10 +42,7 @@ class TestValidateEndpoint:
 
     def test_validate_invalid_pollution(self, client, incomplete_measurement):
         """Valider une mesure invalide → 200 CRITICAL."""
-        response = client.post(
-            "/validate",
-            json=incomplete_measurement.model_dump()
-        )
+        response = client.post("/validate", json=incomplete_measurement.model_dump())
         assert response.status_code == 200
         data = response.json()
         assert data["state"] == "CRITICAL"
@@ -57,10 +51,7 @@ class TestValidateEndpoint:
 
     def test_validate_invalid_json(self, client):
         """Envoyer JSON invalide → 422."""
-        response = client.post(
-            "/validate",
-            json={"type": "unknown", "city": ""}
-        )
+        response = client.post("/validate", json={"type": "unknown", "city": ""})
         # La validation Pydantic échoue → erreur de validation
         assert response.status_code in [422, 200]
 
@@ -69,15 +60,12 @@ class TestBatchEndpoint:
     """Tests de l'endpoint POST /validate-batch."""
 
     def test_batch_mixed_measurements(
-        self,
-        client,
-        valid_pollution_measurement,
-        incomplete_measurement
+        self, client, valid_pollution_measurement, incomplete_measurement
     ):
         """Batch avec mesures valides et invalides → stats correctes."""
         measurements = [
             valid_pollution_measurement.model_dump(),
-            incomplete_measurement.model_dump()
+            incomplete_measurement.model_dump(),
         ]
         with patch("app.main._publish_measurement") as mock_publish:
             response = client.post("/validate-batch", json=measurements)

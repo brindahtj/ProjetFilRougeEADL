@@ -13,6 +13,7 @@ logging.basicConfig(level=logging.INFO)
 
 consumer_thread = None
 
+
 def init_consumer():
     """Lance le consumer RabbitMQ dans un thread séparé."""
     import threading
@@ -25,7 +26,9 @@ def init_consumer():
         ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)
 
         ch.queue_declare(queue="q_association", durable=True)
-        ch.queue_bind(exchange=EXCHANGE, queue="q_association", routing_key="association")
+        ch.queue_bind(
+            exchange=EXCHANGE, queue="q_association", routing_key="association"
+        )
 
         def on_association(ch, method, properties, body):
             try:
@@ -35,7 +38,7 @@ def init_consumer():
                     zone=msg.get("zone"),
                     pollution_avg=msg["pollution_avg"],
                     traffic_avg=msg["traffic_avg"],
-                    time_window=msg.get("time_window", "")
+                    time_window=msg.get("time_window", ""),
                 )
                 log.info("Stored correlation: %s/%s", msg["city"], msg.get("zone"))
                 ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -50,6 +53,7 @@ def init_consumer():
     thread = threading.Thread(target=consume, daemon=True)
     thread.start()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -57,11 +61,14 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
 
+
 app = FastAPI(title="Analyse Service", lifespan=lifespan)
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
 
 @app.get("/correlations", response_model=List[CorrelationResponse])
 def get_all_correlations(city: str = None, zone: str = None, limit: int = 100):
@@ -69,11 +76,13 @@ def get_all_correlations(city: str = None, zone: str = None, limit: int = 100):
     correlations = get_correlations(city=city, zone=zone, limit=limit)
     return correlations
 
+
 @app.get("/correlations/{city}", response_model=List[CorrelationResponse])
 def get_city_correlations(city: str, zone: str = None, limit: int = 50):
     """Récupère les corrélations pour une ville."""
     correlations = get_correlations(city=city, zone=zone, limit=limit)
     return correlations
+
 
 @app.get("/correlations/{city}/{zone}", response_model=List[CorrelationResponse])
 def get_zone_correlations(city: str, zone: str, limit: int = 50):

@@ -2,9 +2,17 @@ from datetime import datetime, timedelta, timezone
 from .models import RawMeasurement, ValidationResult
 from .state import MeasurementStateMachine
 from .config import (
-    LATITUDE_MIN, LATITUDE_MAX, LONGITUDE_MIN, LONGITUDE_MAX,
-    POLLUTION_ALLOWED, POLLUTION_VALUE_MIN, POLLUTION_VALUE_MAX,
-    TRAFFIC_Q_MIN, TRAFFIC_Q_MAX, CITIES_ALLOWED, ZONES_ALLOWED
+    LATITUDE_MIN,
+    LATITUDE_MAX,
+    LONGITUDE_MIN,
+    LONGITUDE_MAX,
+    POLLUTION_ALLOWED,
+    POLLUTION_VALUE_MIN,
+    POLLUTION_VALUE_MAX,
+    TRAFFIC_Q_MIN,
+    TRAFFIC_Q_MAX,
+    CITIES_ALLOWED,
+    ZONES_ALLOWED,
 )
 import logging
 
@@ -34,12 +42,12 @@ class MeasurementValidator:
         MeasurementValidator._validate_timestamp(measurement, state_machine)
         MeasurementValidator._validate_type_specific(measurement, state_machine, aberrant)
 
-        return MeasurementValidator._build_result(measurement, state_machine, aberrant["flag"], sensor_id)
+        return MeasurementValidator._build_result(
+            measurement, state_machine, aberrant["flag"], sensor_id
+        )
 
     @staticmethod
-    def _validate_type(
-        measurement: RawMeasurement, state_machine: MeasurementStateMachine
-    ) -> None:
+    def _validate_type(measurement: RawMeasurement, state_machine: MeasurementStateMachine) -> None:
         """Valide le type de mesure."""
         if measurement.type not in ["pollution", "traffic"]:
             state_machine.add_error(f"Invalid type: {measurement.type}")

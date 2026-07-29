@@ -9,13 +9,20 @@ import requests
 from datetime import datetime
 
 from .config import (
-    RABBIT_HOST, RABBIT_USER, RABBIT_PASS, EXCHANGE,
-    REFERENTIAL_URL, DEFAULTS, THRESHOLD_REFRESH_SECONDS, POLL_PREFETCH
+    RABBIT_HOST,
+    RABBIT_USER,
+    RABBIT_PASS,
+    EXCHANGE,
+    REFERENTIAL_URL,
+    DEFAULTS,
+    THRESHOLD_REFRESH_SECONDS,
+    POLL_PREFETCH,
 )
 from .models import PollutionMessage, TrafficMessage, AlertEvent
 
 log = logging.getLogger("detection")
 logging.basicConfig(level=logging.INFO)
+
 
 class ThresholdCache:
     def __init__(self, referential_url: str = REFERENTIAL_URL):
@@ -43,7 +50,11 @@ class ThresholdCache:
                 self.last_load = datetime.utcnow()
             log.info("Loaded %d thresholds from referential", len(self.values))
         except Exception as exc:
-            log.warning("Failed to load thresholds from referential (%s). Using defaults. Error: %s", self.referential_url, exc)
+            log.warning(
+                "Failed to load thresholds from referential (%s). Using defaults. Error: %s",
+                self.referential_url,
+                exc,
+            )
 
     def _periodic_refresh(self):
         while True:
@@ -57,8 +68,10 @@ class ThresholdCache:
         with self._lock:
             return self.values.get(key, default)
 
+
 # Global threshold cache
 thresholds = ThresholdCache()
+
 
 class DetectionConsumer:
     def __init__(self):
@@ -67,21 +80,31 @@ class DetectionConsumer:
         self.conn = pika.BlockingConnection(params)
         self.ch = self.conn.channel()
         # use direct exchange to control routing keys
-        self.ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)
+        self.ch.exchange_declare(
+            exchange=EXCHANGE, exchange_type="direct", durable=True
+        )
 
         # queues for validated measurements
         self.ch.queue_declare(queue="q_pollution_validated", durable=True)
         self.ch.queue_declare(queue="q_traffic_validated", durable=True)
 
-        self.ch.queue_bind(exchange=EXCHANGE, queue="q_pollution_validated", routing_key="pollution")
-        self.ch.queue_bind(exchange=EXCHANGE, queue="q_traffic_validated", routing_key="traffic")
+        self.ch.queue_bind(
+            exchange=EXCHANGE, queue="q_pollution_validated", routing_key="pollution"
+        )
+        self.ch.queue_bind(
+            exchange=EXCHANGE, queue="q_traffic_validated", routing_key="traffic"
+        )
 
         self.ch.basic_qos(prefetch_count=POLL_PREFETCH)
 
     def start(self):
         log.info("Starting detection consumer...")
-        self.ch.basic_consume(queue="q_pollution_validated", on_message_callback=self.on_pollution)
-        self.ch.basic_consume(queue="q_traffic_validated", on_message_callback=self.on_traffic)
+        self.ch.basic_consume(
+            queue="q_pollution_validated", on_message_callback=self.on_pollution
+        )
+        self.ch.basic_consume(
+            queue="q_traffic_validated", on_message_callback=self.on_traffic
+        )
         try:
             self.ch.start_consuming()
         except KeyboardInterrupt:
@@ -123,8 +146,13 @@ class DetectionConsumer:
         warn_key = f"{key_base}_WARNING"
         crit_key = f"{key_base}_CRITICAL"
 
-        crit = thresholds.get(crit_key, thresholds.get(f"{key_base}_CRITICAL", DEFAULTS.get("NO2_CRITICAL")))
-        warn = thresholds.get(warn_key, thresholds.get(f"{key_base}_WARNING", DEFAULTS.get("NO2_WARNING")))
+        crit = thresholds.get(
+            crit_key,
+            thresholds.get(f"{key_base}_CRITICAL", DEFAULTS.get("NO2_CRITICAL")),
+        )
+        warn = thresholds.get(
+            warn_key, thresholds.get(f"{key_base}_WARNING", DEFAULTS.get("NO2_WARNING"))
+        )
 
         # detection logic (simple fixed-threshold)
         if msg.value >= crit:
@@ -139,7 +167,7 @@ class DetectionConsumer:
                 value=msg.value,
                 unit=msg.unit,
                 timestamp=msg.timestamp or datetime.utcnow(),
-                metadata={"rule": "fixed_threshold", "threshold_key": crit_key}
+                metadata={"rule": "fixed_threshold", "threshold_key": crit_key},
             )
             self.publish_alert(alert)
         elif msg.value >= warn:
@@ -154,7 +182,7 @@ class DetectionConsumer:
                 value=msg.value,
                 unit=msg.unit,
                 timestamp=msg.timestamp or datetime.utcnow(),
-                metadata={"rule": "fixed_threshold", "threshold_key": warn_key}
+                metadata={"rule": "fixed_threshold", "threshold_key": warn_key},
             )
             self.publish_alert(alert)
         else:
@@ -182,7 +210,7 @@ class DetectionConsumer:
                 section_id=msg.section_id,
                 value=msg.q,
                 timestamp=msg.timestamp or datetime.utcnow(),
-                metadata={"rule": "fixed_threshold", "threshold_key": crit_key}
+                metadata={"rule": "fixed_threshold", "threshold_key": crit_key},
             )
             self.publish_alert(alert)
         elif msg.q >= warn:
@@ -197,11 +225,12 @@ class DetectionConsumer:
                 section_id=msg.section_id,
                 value=msg.q,
                 timestamp=msg.timestamp or datetime.utcnow(),
-                metadata={"rule": "fixed_threshold", "threshold_key": warn_key}
+                metadata={"rule": "fixed_threshold", "threshold_key": warn_key},
             )
             self.publish_alert(alert)
         else:
             log.debug("Traffic normal: q=%s", msg.q)
+
 
 if __name__ == "__main__":
     consumer = DetectionConsumer()

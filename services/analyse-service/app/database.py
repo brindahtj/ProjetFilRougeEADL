@@ -10,6 +10,7 @@ SessionLocal = sessionmaker(bind=engine)
 
 Base.metadata.create_all(engine)
 
+
 def pearson_correlation(x: list[float], y: list[float]) -> float | None:
     """Calcule la corrélation de Pearson."""
     if not x or not y or len(x) != len(y):
@@ -25,7 +26,10 @@ def pearson_correlation(x: list[float], y: list[float]) -> float | None:
         return None
     return num / denom
 
-def save_correlation(city: str, zone: str, pollution_avg: float, traffic_avg: float, time_window: str):
+
+def save_correlation(
+    city: str, zone: str, pollution_avg: float, traffic_avg: float, time_window: str
+):
     """Sauvegarde une corrélation en DB et retourne l'objet."""
     db = SessionLocal()
     try:
@@ -39,7 +43,7 @@ def save_correlation(city: str, zone: str, pollution_avg: float, traffic_avg: fl
             traffic_avg=traffic_avg,
             correlation_value=corr,
             sample_size=1,
-            time_window=time_window
+            time_window=time_window,
         )
         db.add(correlation)
         db.commit()
@@ -47,6 +51,7 @@ def save_correlation(city: str, zone: str, pollution_avg: float, traffic_avg: fl
         return correlation
     finally:
         db.close()
+
 
 def get_correlations(city: str = None, zone: str = None, limit: int = 100):
     """Récupère les corrélations."""

@@ -6,6 +6,7 @@ import logging
 
 log = logging.getLogger("association")
 
+
 class AssociationEngine:
     """Associe pollution et trafic par zone et fenêtre temporelle."""
 
@@ -13,9 +14,7 @@ class AssociationEngine:
         self.time_window = timedelta(minutes=time_window_minutes)
 
     def associate_by_zone_and_time(
-        self,
-        pollution: List[dict],
-        traffic: List[dict]
+        self, pollution: List[dict], traffic: List[dict]
     ) -> List[AssociatedData]:
         """
         Associe mesures pollution et trafic par zone et fenêtre temporelle.
@@ -29,12 +28,10 @@ class AssociationEngine:
 
         # Convertir en objets typisés
         pollution_readings = [
-            PollutionMeasurement(**p) for p in pollution
-            if isinstance(p, dict)
+            PollutionMeasurement(**p) for p in pollution if isinstance(p, dict)
         ]
         traffic_readings = [
-            TrafficMeasurement(**t) for t in traffic
-            if isinstance(t, dict)
+            TrafficMeasurement(**t) for t in traffic if isinstance(t, dict)
         ]
 
         # Grouper par (city, zone, time_bucket)
@@ -58,12 +55,15 @@ class AssociationEngine:
                     pollution_avg=mean(poll_values),
                     traffic_avg=mean(traf_values),
                     time_window=time_window,
-                    timestamp=datetime.utcnow()
+                    timestamp=datetime.utcnow(),
                 )
                 associations.append(association)
                 log.info(
                     "Associated: %s/%s - poll_avg=%.2f, traf_avg=%.2f",
-                    city, zone, association.pollution_avg, association.traffic_avg
+                    city,
+                    zone,
+                    association.pollution_avg,
+                    association.traffic_avg,
                 )
 
         return associations
@@ -77,7 +77,13 @@ class AssociationEngine:
             zone = reading.zone or "unknown"
             # Arrondir au time_window
             ts = reading.timestamp
-            bucket_minute = (ts.hour * 60 + ts.minute) // self.time_window.total_seconds() // 60 * self.time_window.total_seconds() // 60
+            bucket_minute = (
+                (ts.hour * 60 + ts.minute)
+                // self.time_window.total_seconds()
+                // 60
+                * self.time_window.total_seconds()
+                // 60
+            )
             time_bucket = f"{ts.hour:02d}:{bucket_minute:02d}"
 
             key = (city, zone, time_bucket)

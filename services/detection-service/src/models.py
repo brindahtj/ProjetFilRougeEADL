@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime
 
+
 class PollutionMessage(BaseModel):
     city: str
     zone: Optional[str] = None
@@ -11,6 +12,7 @@ class PollutionMessage(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     timestamp: Optional[datetime] = None
+
 
 class TrafficMessage(BaseModel):
     city: str
@@ -22,9 +24,10 @@ class TrafficMessage(BaseModel):
     longitude: Optional[float] = None
     timestamp: Optional[datetime] = None
 
+
 class AlertEvent(BaseModel):
-    type: str            # pollution | traffic | correlation
-    level: str           # WARNING | CRITICAL
+    type: str  # pollution | traffic | correlation
+    level: str  # WARNING | CRITICAL
     title: str
     message: str
     city: Optional[str] = None

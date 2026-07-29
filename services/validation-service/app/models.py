@@ -5,6 +5,7 @@ from datetime import datetime
 
 class RawMeasurement(BaseModel):
     """Modèle de mesure brute reçue par l'API."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -15,7 +16,7 @@ class RawMeasurement(BaseModel):
                 "value": 85.5,
                 "latitude": 48.8566,
                 "longitude": 2.3522,
-                "timestamp": "2026-07-02T10:30:00Z"
+                "timestamp": "2026-07-02T10:30:00Z",
             }
         }
     )
@@ -37,6 +38,7 @@ class RawMeasurement(BaseModel):
 
 class ValidationResult(BaseModel):
     """Résultat de validation d'une mesure."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -48,10 +50,10 @@ class ValidationResult(BaseModel):
                     "pollutant": "no2",
                     "value": 85.5,
                     "latitude": 48.8566,
-                    "longitude": 2.3522
+                    "longitude": 2.3522,
                 },
                 "errors": [],
-                "warnings": []
+                "warnings": [],
             }
         }
     )
@@ -59,9 +61,7 @@ class ValidationResult(BaseModel):
     state: Literal["NORMAL", "CRITICAL"] = Field(
         ..., description="État de la mesure: NORMAL (valide) ou CRITICAL (invalide)"
     )
-    valid: bool = Field(
-        ..., description="Indicateur de validité cohérent avec state"
-    )
+    valid: bool = Field(..., description="Indicateur de validité cohérent avec state")
     aberrant: bool = Field(
         False,
         description=(
@@ -73,19 +73,16 @@ class ValidationResult(BaseModel):
     sensor_id: Optional[str] = Field(
         None, description="Identifiant du capteur à l'origine de la mesure, si fourni"
     )
-    measurement: Optional[RawMeasurement] = Field(
-        None, description="Mesure validée (si valide)"
-    )
+    measurement: Optional[RawMeasurement] = Field(None, description="Mesure validée (si valide)")
     errors: list[str] = Field(
         default_factory=list, description="Erreurs (données incomplètes/aberrantes)"
     )
-    warnings: list[str] = Field(
-        default_factory=list, description="Avertissements (non bloquants)"
-    )
+    warnings: list[str] = Field(default_factory=list, description="Avertissements (non bloquants)")
 
 
 class ValidationResponse(BaseModel):
     """Réponse API pour une validation simple."""
+
     state: Literal["NORMAL", "CRITICAL"]
     valid: bool
     aberrant: bool = False
@@ -98,6 +95,7 @@ class ValidationResponse(BaseModel):
 
 class BatchValidationResponse(BaseModel):
     """Réponse API pour une validation par lot."""
+
     results: list[ValidationResponse]
     total: int = Field(..., description="Nombre total de mesures traitées")
     accepted: int = Field(..., description="Nombre de mesures acceptées (NORMAL)")
@@ -106,6 +104,7 @@ class BatchValidationResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Réponse du health check."""
+
     status: str
     service: str = "validation-service"
     version: str = "1.0.0"

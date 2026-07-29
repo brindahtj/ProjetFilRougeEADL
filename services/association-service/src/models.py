@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
+
 class PollutionMeasurement(BaseModel):
     city: str
     zone: Optional[str]
@@ -10,6 +11,7 @@ class PollutionMeasurement(BaseModel):
     latitude: Optional[float]
     longitude: Optional[float]
     timestamp: datetime
+
 
 class TrafficMeasurement(BaseModel):
     city: str
@@ -20,6 +22,7 @@ class TrafficMeasurement(BaseModel):
     latitude: Optional[float]
     longitude: Optional[float]
     timestamp: datetime
+
 
 class AssociatedData(BaseModel):
     city: str

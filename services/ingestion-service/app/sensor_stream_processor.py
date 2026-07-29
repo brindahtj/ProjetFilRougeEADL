@@ -30,7 +30,9 @@ class SensorStreamProcessor:
 
     SENSOR_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{3,64}$")
 
-    def __init__(self, validation_service_url: str, sensors: Dict[str, Sensor] | None = None):
+    def __init__(
+        self, validation_service_url: str, sensors: Dict[str, Sensor] | None = None
+    ):
         self._validation_service_url = validation_service_url.rstrip("/")
         self._sensors: Dict[str, Sensor] = sensors if sensors is not None else {}
 
@@ -94,7 +96,9 @@ class SensorStreamProcessor:
                     }
                 )
                 log.warning(
-                    "⚠ Donnée aberrante pour %s : capteur désormais %s", sensor_id, new_status.value
+                    "⚠ Donnée aberrante pour %s : capteur désormais %s",
+                    sensor_id,
+                    new_status.value,
                 )
             else:
                 # Donnée incomplète : impossible à interpréter, on ne touche
@@ -108,7 +112,9 @@ class SensorStreamProcessor:
                         "error": "; ".join(outcome["errors"]) or "incomplete data",
                     }
                 )
-                log.warning("✗ Donnée incomplète pour %s : %s", sensor_id, outcome["errors"])
+                log.warning(
+                    "✗ Donnée incomplète pour %s : %s", sensor_id, outcome["errors"]
+                )
 
         return {
             "sensor_id": sensor_id,
@@ -148,8 +154,14 @@ class SensorStreamProcessor:
                 "errors": data.get("errors", []),
             }
         except requests.RequestException as exc:
-            log.error("validation-service unreachable for sensor %s: %s", sensor_id, exc)
-            return {"valid": False, "aberrant": False, "errors": [f"validation-service unreachable: {exc}"]}
+            log.error(
+                "validation-service unreachable for sensor %s: %s", sensor_id, exc
+            )
+            return {
+                "valid": False,
+                "aberrant": False,
+                "errors": [f"validation-service unreachable: {exc}"],
+            }
 
     def get_sensor_status(self, sensor_id: str) -> SensorStatus:
         sensor = self._sensors.get(sensor_id)
@@ -157,5 +169,7 @@ class SensorStreamProcessor:
 
     def get_critical_sensors(self) -> Dict[str, Sensor]:
         return {
-            sid: s for sid, s in self._sensors.items() if s.status == SensorStatus.CRITICAL
+            sid: s
+            for sid, s in self._sensors.items()
+            if s.status == SensorStatus.CRITICAL
         }

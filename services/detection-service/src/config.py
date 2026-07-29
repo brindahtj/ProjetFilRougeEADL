@@ -15,7 +15,7 @@ DEFAULTS = {
     "NO2_WARNING": 100.0,
     "NO2_CRITICAL": 200.0,
     "TRAFFIC_Q_WARNING": 500.0,
-    "TRAFFIC_Q_CRITICAL": 800.0
+    "TRAFFIC_Q_CRITICAL": 800.0,
 }
 
 # Refresh interval (sec) for thresholds

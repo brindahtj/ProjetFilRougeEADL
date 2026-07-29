@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 
+
 class CorrelationORM(Base):
     __tablename__ = "correlations"
 
@@ -19,6 +20,7 @@ class CorrelationORM(Base):
     sample_size = Column(Integer)
     time_window = Column(String(50))
     created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class CorrelationResponse(BaseModel):
     id: int

@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 @pytest.fixture
 def valid_pollution_measurement():
     """Fixture : mesure de pollution valide."""
@@ -63,11 +64,9 @@ def invalid_type_measurement():
     """Fixture : type invalide."""
     # model_construct permet de contourner la validation stricte de Pydantic
     return RawMeasurement.model_construct(
-        type="unknown",
-        city="paris",
-        latitude=48.8566,
-        longitude=2.3522
+        type="unknown", city="paris", latitude=48.8566, longitude=2.3522
     )
+
 
 @pytest.fixture
 def mock_rabbit_connection():

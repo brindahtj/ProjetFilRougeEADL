@@ -4,13 +4,16 @@ from .config import RABBIT_HOST, RABBIT_USER, RABBIT_PASS, EXCHANGE
 log = logging.getLogger("notification")
 logging.basicConfig(level=logging.INFO)
 
+
 class NotificationApp:
     def __init__(self):
         creds = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
         params = pika.ConnectionParameters(host=RABBIT_HOST, credentials=creds)
         self.conn = pika.BlockingConnection(params)
         self.ch = self.conn.channel()
-        self.ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)
+        self.ch.exchange_declare(
+            exchange=EXCHANGE, exchange_type="direct", durable=True
+        )
 
         self.ch.queue_declare(queue="q_alerts", durable=True)
         self.ch.queue_bind(exchange=EXCHANGE, queue="q_alerts", routing_key="alerts")
@@ -32,6 +35,7 @@ class NotificationApp:
         except Exception as exc:
             log.exception("Alert handling error: %s", exc)
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
 
 if __name__ == "__main__":
     NotificationApp().start()
