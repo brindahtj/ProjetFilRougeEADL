@@ -1,9 +1,8 @@
 from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -60,7 +59,7 @@ class TestBatchEndpoint:
     """Tests de l'endpoint POST /validate-batch."""
 
     def test_batch_mixed_measurements(
-        self, client, valid_pollution_measurement, incomplete_measurement
+        self, client, valid_pollution_measurement, incomplete_measurement, mock_publish
     ):
         """Batch avec mesures valides et invalides → stats correctes."""
         measurements = [
@@ -71,6 +70,7 @@ class TestBatchEndpoint:
             response = client.post("/validate-batch", json=measurements)
             assert response.status_code == 200
         data = response.json()
+        mock_publish.assert_called()
         assert data["total"] == 2
         assert data["accepted"] == 1
         assert data["rejected"] == 1

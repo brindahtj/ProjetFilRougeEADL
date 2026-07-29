@@ -1,4 +1,6 @@
-import pika, json, logging
+import pika
+import json
+import logging
 from .config import RABBIT_HOST, RABBIT_USER, RABBIT_PASS, EXCHANGE
 
 log = logging.getLogger("notification")

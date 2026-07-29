@@ -4,7 +4,7 @@ import json
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from .config import RABBIT_HOST, RABBIT_USER, RABBIT_PASS, EXCHANGE
-from .database import save_correlation, get_correlations, SessionLocal, CorrelationORM
+from .database import save_correlation, get_correlations
 from .models import CorrelationResponse
 from typing import List
 
