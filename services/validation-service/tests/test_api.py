@@ -59,7 +59,7 @@ class TestBatchEndpoint:
     """Tests de l'endpoint POST /validate-batch."""
 
     def test_batch_mixed_measurements(
-        self, client, valid_pollution_measurement, incomplete_measurement, mock_publish
+        self, client, valid_pollution_measurement, incomplete_measurement
     ):
         """Batch avec mesures valides et invalides → stats correctes."""
         measurements = [
