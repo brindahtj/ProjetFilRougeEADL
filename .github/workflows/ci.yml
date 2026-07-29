@@ -125,6 +125,7 @@ jobs:
         with:
           image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test'
           severity: 'CRITICAL'
+          ignore-unfixed: true # on va ignorer les vulnérabilités pour lesquelles aucun correctif n'existe encore, sinon un distroless aurait pu être interessant
           exit-code: '1'
 
       - name: Log in to GHCR
