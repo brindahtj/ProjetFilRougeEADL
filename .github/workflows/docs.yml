@@ -2,11 +2,12 @@ name: CI Documentation
 
 on:
   push:
+    branches: [ main, staging, Refacto ]
     paths:
       - 'ma-doc-diataxis/**'
       - '.github/workflows/docs.yml'
   pull_request:
-        branches: [ main, staging , Refacto]
+        branches: [ main, staging ]
         paths:
           - 'ma-doc-diataxis/**'
           - '.github/workflows/docs.yml'
