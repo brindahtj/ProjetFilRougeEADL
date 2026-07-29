@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: brindahtj/projetfilrougeeadl:test
+  IMAGE_NAME: brindahtj/projetfilrougeeadl
 
 jobs:
   # ==========================================
