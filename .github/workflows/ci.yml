@@ -69,6 +69,11 @@ jobs:
         run: |
           pip install bandit
           bandit -r . -f json -o bandit-results.json -iii
+
+      - name: Display Bandit Results in Logs
+        if: failure() # S'exécute uniquement si Bandit fait échouer l'étape précédente
+        run: |
+              cat bandit-results.json
   # ==========================================
   # 3. SCA & SECRETS (Trivy FS & Gitleaks)
   # ==========================================
