@@ -68,7 +68,7 @@ jobs:
       - name: Run Bandit (Python SAST)
         run: |
           pip install bandit
-          bandit -r . -f sarif -o bandit-results.sarif -iii
+          bandit -r . -f json -o bandit-results.json -iii
   # ==========================================
   # 3. SCA & SECRETS (Trivy FS & Gitleaks)
   # ==========================================
