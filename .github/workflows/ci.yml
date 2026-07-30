@@ -60,17 +60,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Run Bandit (Python SAST)
         run: |
           pip install bandit
-          bandit -r . -f sarif -o bandit-results.sarif || true
-
-      - name: Upload SARIF Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sast-sarif-reports
-          path: "*.sarif"
-
+          bandit -r . -f sarif -o bandit-results.sarif -iii
   # ==========================================
   # 3. SCA & SECRETS (Trivy FS & Gitleaks)
   # ==========================================

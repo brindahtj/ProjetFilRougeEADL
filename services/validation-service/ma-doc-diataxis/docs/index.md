@@ -60,3 +60,39 @@ flowchart LR
 ## Diagramme du projet
 
 ![diagramme de sequence UC3 V2.png](diagramme%20de%20sequence%20UC3%20V2.png)
+
+## Utilisation de l'intelligence artificielle  pour la documentation 
+Dans le cadre de ce projet, l'intelligence artificielle a été utilisée pour aider à écrire la documentation technique.
+### 📝 Prompts majeurs et audit des réponses
+
+> Pour chaque décision structurante prise avec l'aide de l'IA, voici le prompt à l'origine, un résumé de la réponse obtenue, et la justification de sa validation ou de sa correction.
+
+#### Prompt 1 — [ Restructuration de june_incident.md ]
+- **Contexte :** [Le june incident n'etait pas daté et ne correspondait pas à la structure de la documentation. L'IA a été sollicitée pour proposer une restructuration cohérente."]
+- **Réponse obtenue :** [La reponse obtenue a permis de restructurer le fichier june_incident.md en suivant la structure de la documentation, en ajoutant des sections claires et en dattant l'incident.]
+- **Verdict :** Validé — **Pourquoi :** ["Validé après vérification manuelle, la structure proposée datée est cohérente avec le reste de la documentation et facilite la lecture et la compréhension de l'incident ."]
+
+#### Prompt 2 — [Aide commande mkdocs afin de generer la documentation]
+- **Contexte :** [ L'IA a été sollicitée pour générer les commandes nécessaires à l'exécution de mkdocs et pour corriger les diagrammes mermaid afin d'obtenir un diagramme de composant clair et précis.]
+- **Réponse obtenue :** [La réponse obtenue a fourni les commandes pour exécuter mkdocs, ainsi que des suggestions pour corriger et améliorer les diagrammes mermaid, permettant d'obtenir un diagramme de composant plus lisible et compréhensible.]
+- **Verdict :** Corrigé — **Pourquoi :** ["Après plusieurs essais, les diagrammes mermaid ont été ajustés pour mieux représenter les relations entre les services et les flux d'événements. L'IA a permis de structurer l'information de manière cohérente et accessible, facilitant ainsi la compréhension du système pour les développeurs et les parties prenantes."]
+
+#### Prompt 3 — [Mise à jour du mkdocs.yml pour inclure les nouveaux fichiers et sections]
+- **Contexte :** [L'IA a été sollicitée pour aider à mettre à jour le fichier mkdocs.yml afin d'inclure les nouveaux fichiers et sections de la documentation, en s'assurant que la navigation soit claire et intuitive.]
+- **Réponse obtenue :** [La réponse obtenue a fourni les commandes pour exécuter mkdocs]
+- **Verdict :** Corrigé — **Pourquoi :** [" Après plusieurs essais, le fichier mkdocs.yml a été ajusté pour inclure les nouveaux fichiers et sections de la documentation. L'IA a permis de structurer l'information de manière cohérente et accessible, facilitant ainsi la navigation et la compréhension du système pour les développeurs et les parties prenantes."]
+
+#### Prompt 4 — [Mise à jour du diagramme mermaid de composant]
+- **Contexte :** [L'IA a été sollicitée pour aider à mettre à jour le diagramme  de composant codé en mermaid, en s'assurant que la navigation soit claire et intuitive.]
+- **Réponse obtenue :** [Il a été proposé de corriger et améliorer le diagramme mermaid, permettant d'obtenir un diagramme de composant plus lisible et compréhensible.]
+- **Verdict :** Corrigé — **Pourquoi :** ["Après plusieurs essais, les diagrammes mermaid ont été ajustés pour mieux représenter les relations entre les services et les flux d'événements. L'IA a permis de structurer l'information de manière cohérente et accessible, facilitant ainsi la compréhension du système pour les développeurs et les parties prenantes."]
+
+#### Prompt 5 — [Restructuration des fichiers de documentation pour une meilleure lisibilité]
+- **Contexte :** [De base, la documentation etait seulement dans le readme.me et après avoir vu le documentation de diataxis, j'ai demandé à l'IA demaider à restructurer les fichiers de documentation pour une meilleure lisibilité et organisation.]
+- **Réponse obtenue :** [ L'IA a proposé une structure de documentation basée sur le modèle Diátaxis, en séparant les fichiers en sections distinctes pour les tutoriels, les explications, les références et les guides pratiques. Cette restructuration a permis d'améliorer la lisibilité et l'organisation de la documentation, facilitant ainsi la navigation et la compréhension pour les utilisateurs.]
+- **Verdict :** Validé — **Pourquoi :** ["Validé après vérification manuelle, la structure proposée est cohérente avec le modèle Diátaxis et facilite la lecture et la compréhension de la documentation."]
+
+### Prompt 6 — [Aide à la rédaction de changelog]
+- **Contexte :** [L'IA a été sollicitée pour aider à rédiger un changelog clair et structuré à partir de commits, en mettant en évidence les modifications apportées au projet et en facilitant la compréhension des évolutions pour les utilisateurs.]
+- **Réponse obtenue :** [La réponse obtenue a fourni un exemple de changelog structuré, avec des sections distinctes pour les nouvelles fonctionnalités, les corrections de bugs et les améliorations. Cela a permis de créer un changelog clair et compréhensible pour les utilisateurs, facilitant ainsi la communication des évolutions du projet.]
+- **Verdict :** Corrigé — **Pourquoi :** ["Après plusieurs essais, le changelog a été ajusté pour mieux représenter les modifications apportées au projet. L'IA a permis de structurer l'information de manière cohérente et accessible, facilitant ainsi la compréhension des évolutions pour les utilisateurs et les parties prenantes."]

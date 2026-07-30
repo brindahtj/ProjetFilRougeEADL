@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:c76e3051-5297-4b4b-b05e-b16f4be7be8a",
+  "serialNumber": "urn:uuid:5cddcff4-a5c1-49d4-a0d5-252a2abd2213",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-07-27T14:58:24+00:00",
+    "timestamp": "2026-07-30T09:22:12+00:00",
     "tools": {
       "components": [
         {
@@ -20,7 +20,7 @@
       ]
     },
     "component": {
-      "bom-ref": "dd0926f6-4772-4f07-bd26-43a98622f538",
+      "bom-ref": "7dac42d6-9762-4e43-ac09-b047aa766db9",
       "type": "application",
       "name": "/src",
       "properties": [
@@ -33,7 +33,7 @@
   },
   "components": [
     {
-      "bom-ref": "632141b8-8dc8-4c54-b29d-d7ed89ea29da",
+      "bom-ref": "51c4ff17-cce3-4de2-afe2-e3ed1c04c504",
       "type": "application",
       "name": "services/validation-service/requirements.txt",
       "properties": [
@@ -139,6 +139,19 @@
       ]
     },
     {
+      "bom-ref": "pkg:pypi/python-dotenv@0.21.0",
+      "type": "library",
+      "name": "python-dotenv",
+      "version": "0.21.0",
+      "purl": "pkg:pypi/python-dotenv@0.21.0",
+      "properties": [
+        {
+          "name": "aquasecurity:trivy:PkgType",
+          "value": "pip"
+        }
+      ]
+    },
+    {
       "bom-ref": "pkg:pypi/ruff@0.1.8",
       "type": "library",
       "name": "ruff",
@@ -180,7 +193,7 @@
   ],
   "dependencies": [
     {
-      "ref": "632141b8-8dc8-4c54-b29d-d7ed89ea29da",
+      "ref": "51c4ff17-cce3-4de2-afe2-e3ed1c04c504",
       "dependsOn": [
         "pkg:pypi/fastapi@0.104.1",
         "pkg:pypi/httpx@0.25.2",
@@ -189,15 +202,16 @@
         "pkg:pypi/pytest-asyncio@0.21.1",
         "pkg:pypi/pytest-cov@4.1.0",
         "pkg:pypi/pytest@7.4.3",
+        "pkg:pypi/python-dotenv@0.21.0",
         "pkg:pypi/ruff@0.1.8",
         "pkg:pypi/sonarqube-api@1.2.0",
         "pkg:pypi/uvicorn@0.24.0"
       ]
     },
     {
-      "ref": "dd0926f6-4772-4f07-bd26-43a98622f538",
+      "ref": "7dac42d6-9762-4e43-ac09-b047aa766db9",
       "dependsOn": [
-        "632141b8-8dc8-4c54-b29d-d7ed89ea29da"
+        "51c4ff17-cce3-4de2-afe2-e3ed1c04c504"
       ]
     },
     {
@@ -226,6 +240,10 @@
     },
     {
       "ref": "pkg:pypi/pytest@7.4.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/python-dotenv@0.21.0",
       "dependsOn": []
     },
     {
@@ -319,6 +337,81 @@
           "versions": [
             {
               "version": "7.4.3",
+              "status": "affected"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-28684",
+      "source": {
+        "name": "ghsa",
+        "url": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "ghsa"
+          },
+          "score": 6.6,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:R/S:U/C:N/I:H/A:H"
+        },
+        {
+          "source": {
+            "name": "redhat"
+          },
+          "score": 7.1,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:H"
+        }
+      ],
+      "cwes": [
+        59,
+        61
+      ],
+      "description": "python-dotenv reads key-value pairs from a .env file and can set them as environment variables. Prior to version 1.2.2, `set_key()` and `unset_key()` in python-dotenv follow symbolic links when rewriting `.env` files, allowing a local attacker to overwrite arbitrary files via a crafted symlink when a cross-device rename fallback is triggered. Users should upgrade to v.1.2.2 or, as a workaround, apply the patch manually.",
+      "recommendation": "Upgrade python-dotenv to version 1.2.2",
+      "advisories": [
+        {
+          "url": "https://avd.aquasec.com/nvd/cve-2026-28684"
+        },
+        {
+          "url": "https://access.redhat.com/security/cve/CVE-2026-28684"
+        },
+        {
+          "url": "https://github.com/theskumar/python-dotenv"
+        },
+        {
+          "url": "https://github.com/theskumar/python-dotenv/commit/790c5c02991100aa1bf41ee5330aca75edc51311"
+        },
+        {
+          "url": "https://github.com/theskumar/python-dotenv/commit/790c5c02991100aa1bf41ee5330aca75edc51311.patch"
+        },
+        {
+          "url": "https://github.com/theskumar/python-dotenv/releases/tag/v1.2.2"
+        },
+        {
+          "url": "https://github.com/theskumar/python-dotenv/security/advisories/GHSA-mf9w-mj56-hr94"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-28684"
+        },
+        {
+          "url": "https://www.cve.org/CVERecord?id=CVE-2026-28684"
+        }
+      ],
+      "published": "2026-04-20T17:16:33+00:00",
+      "updated": "2026-06-17T10:28:54+00:00",
+      "affects": [
+        {
+          "ref": "pkg:pypi/python-dotenv@0.21.0",
+          "versions": [
+            {
+              "version": "0.21.0",
               "status": "affected"
             }
           ]

@@ -1,5 +1,5 @@
 ## 4. `docs/how-to/troubleshooting.md`
-```md
+
 # Troubleshooting
 
 ## RabbitMQ ne démarre pas
@@ -58,4 +58,5 @@
 - consulter les logs du service concerné
 - vérifier le `.env`
 - tester les dépendances une par une
-- démarrer d’abord RabbitMQ et PostgreSQL
+- démarrer d'abord RabbitMQ et PostgreSQL
+```md
