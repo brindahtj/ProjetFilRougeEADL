@@ -1,6 +1,6 @@
 from os import getenv
 
-RABBIT_HOST = getenv("RABBIT_HOST", "rabbitmq")
-RABBIT_USER = getenv("RABBIT_USER", "guest")
-RABBIT_PASS = getenv("RABBIT_PASS", "guest")
-EXCHANGE = getenv("EXCHANGE", "urbanhub")
+RABBITMQ_HOST = getenv("RABBITMQ_HOST", "rabbitmq")
+RABBITMQ_USER = getenv("RABBITMQ_USER", "guest")
+RABBITMQ_PASS = getenv("RABBITMQ_PASS", "guest")
+EXCHANGE = getenv("RABBITMQ_EXCHANGE", "logs")

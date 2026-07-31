@@ -3,7 +3,7 @@ import pika
 import json
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from .config import RABBIT_HOST, RABBIT_USER, RABBIT_PASS, EXCHANGE
+from .config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, EXCHANGE
 from .database import save_correlation, get_correlations
 from .models import CorrelationResponse
 from typing import List
@@ -19,8 +19,8 @@ def init_consumer():
     import threading
 
     def consume():
-        creds = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
-        params = pika.ConnectionParameters(host=RABBIT_HOST, credentials=creds)
+        creds = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+        params = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=creds)
         conn = pika.BlockingConnection(params)
         ch = conn.channel()
         ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)

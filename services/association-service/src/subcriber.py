@@ -2,9 +2,9 @@ import pika
 import json
 import logging
 from .config import (
-    RABBIT_HOST,
-    RABBIT_USER,
-    RABBIT_PASS,
+    RABBITMQ_HOST,
+    RABBITMQ_USER,
+    RABBITMQ_PASS,
     EXCHANGE,
     BUFFER_SIZE,
     TIME_WINDOW_MINUTES,
@@ -17,8 +17,8 @@ logging.basicConfig(level=logging.INFO)
 
 class AssociationSubscriber:
     def __init__(self):
-        creds = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
-        params = pika.ConnectionParameters(host=RABBIT_HOST, credentials=creds)
+        creds = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+        params = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=creds)
         self.conn = pika.BlockingConnection(params)
         self.ch = self.conn.channel()
         self.ch.exchange_declare(

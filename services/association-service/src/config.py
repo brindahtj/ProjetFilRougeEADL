@@ -1,9 +1,9 @@
 from os import getenv
 
-RABBIT_USER = getenv("RABBITMQ_USER", "guest")
-RABBIT_PASS = getenv("RABBITMQ_PASS", "guest")
-RABBIT_HOST = getenv("RABBITMQ_HOST")
-RABBIT_PORT = int(getenv("RABBITMQ_PORT", "5672"))
+RABBITMQ_USER = getenv("RABBITMQ_USER", "guest")
+RABBITMQ_PASS = getenv("RABBITMQ_PASS", "guest")
+RABBITMQ_HOST = getenv("RABBITMQ_HOST")
+RABBITMQ_PORT = int(getenv("RABBITMQ_PORT", "5672"))
 EXCHANGE = getenv("RABBITMQ_EXCHANGE", "logs")
 TARGET_API_URL = getenv("TARGET_API_URL", "http://api-python:8000")
 RATE           = int(getenv("MEASUREMENTS_PER_SECOND", "10"))

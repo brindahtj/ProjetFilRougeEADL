@@ -10,7 +10,7 @@ from .models import (
     HealthResponse,
 )
 from .validator import MeasurementValidator
-from .config import RABBIT_HOST, RABBIT_USER, RABBIT_PASS, EXCHANGE
+from .config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, EXCHANGE
 from .config import API_TITLE, API_DESCRIPTION, API_VERSION
 
 log = logging.getLogger("validation")
@@ -24,8 +24,8 @@ def init_rabbit():
     """Initialise la connexion RabbitMQ."""
     global publisher_connection
     try:
-        creds = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
-        params = pika.ConnectionParameters(host=RABBIT_HOST, credentials=creds, heartbeat=600)
+        creds = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+        params = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=creds, heartbeat=600)
         publisher_connection = pika.BlockingConnection(params)
         ch = publisher_connection.channel()
         ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)

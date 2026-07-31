@@ -12,9 +12,9 @@ import requests
 
 RABBITMQ_USER = getenv("RABBITMQ_USER", "guest")
 RABBITMQ_PASS = getenv("RABBITMQ_PASS", "guest")
-RABBIT_HOST = getenv("RABBITMQ_HOST")
-RABBIT_PORT = int(getenv("RABBITMQ_PORT", "5672"))
-RABBIT_QUEUE= getenv("RABBIT_QUEUE")
+RABBITMQ_HOST = getenv("RABBITMQ_HOST")
+RABBITMQ_PORT = int(getenv("RABBITMQ_PORT", "5672"))
+RABBITMQ_QUEUE= getenv("RABBITMQ_QUEUE")
 EXCHANGE = getenv("RABBITMQ_EXCHANGE", "logs")
 TARGET_API_URL = getenv("TARGET_API_URL", "http://api-python:8000")
 RATE           = int(getenv("MEASUREMENTS_PER_SECOND", "10"))
@@ -42,8 +42,8 @@ def build_rabbitmq_channel(retries=30):
     """Connexion à RabbitMQ avec retry pattern."""
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
     parameters = pika.ConnectionParameters(
-        host=RABBIT_HOST,
-        port=RABBIT_PORT,
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
         credentials=credentials,
         heartbeat=600,
         blocked_connection_timeout=300
@@ -54,8 +54,8 @@ def build_rabbitmq_channel(retries=30):
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
             # Déclaration de la queue pour s'assurer qu'elle existe
-            channel.queue_declare(queue=RABBIT_QUEUE, durable=True)
-            print(f"[sim] Connecté à RabbitMQ sur {RABBIT_HOST}:{RABBIT_PORT}")
+            channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+            print(f"[sim] Connecté à RabbitMQ sur {RABBITMQ_HOST}:{RABBITMQ_PORT}")
             return connection, channel
         except pika.exceptions.AMQPConnectionError:
             print(f"[sim] RabbitMQ pas prêt (essai {i+1}/{retries}), retry dans 3s…")
@@ -85,7 +85,7 @@ def generate_measurement():
 
 
 def main():
-    print(f"[sim] Démarrage — RabbitMQ={RABBIT_HOST}:{RABBIT_PORT} queue={RABBIT_QUEUE} api={TARGET_API_URL} rate={RATE}/s")
+    print(f"[sim] Démarrage — RabbitMQ={RABBITMQ_HOST}:{RABBITMQ_PORT} queue={RABBITMQ_QUEUE} api={TARGET_API_URL} rate={RATE}/s")
 
     connection, channel = build_rabbitmq_channel()
 
@@ -112,7 +112,7 @@ def main():
             try:
                 channel.basic_publish(
                     exchange='',
-                    routing_key=RABBIT_QUEUE,
+                    routing_key=RABBITMQ_QUEUE,
                     body=json.dumps(m),
                     properties=pika.BasicProperties(
                         delivery_mode=2,  # Rendre le message persistant

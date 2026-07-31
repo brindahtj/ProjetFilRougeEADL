@@ -4,10 +4,10 @@ Cette page récapitule les variables utilisées par UrbanHub.
 
 ## RabbitMQ
 
-- `RABBIT_HOST` : hôte RabbitMQ, par défaut `rabbitmq`
-- `RABBIT_PORT` : port AMQP, par défaut `5672`
-- `RABBIT_USER` : utilisateur RabbitMQ, par défaut `guest`
-- `RABBIT_PASS` : mot de passe RabbitMQ, par défaut `guest`
+- `RABBITMQ_HOST` : hôte RabbitMQ, par défaut `rabbitmq`
+- `RABBITMQ_PORT` : port AMQP, par défaut `5672`
+- `RABBITMQ_USER` : utilisateur RabbitMQ, par défaut `guest`
+- `RABBITMQ_PASS` : mot de passe RabbitMQ, par défaut `guest`
 - `EXCHANGE` : exchange RabbitMQ partagé, par défaut `urbanhub`
 
 ## PostgreSQL
