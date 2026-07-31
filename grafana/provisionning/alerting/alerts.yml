@@ -1,0 +1,163 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: 1m-group
+      folder: UrbanHub
+      interval: 1m
+      rules:
+        - uid: fftr7qmv0kh6oa
+          title: 'Alerte 1 : Latence P95 > 500 ms (Warning)'
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cftr76y1ic9a8e
+              model:
+                editorMode: code
+                expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) or vector(0)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.5
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: OK
+          for: 1m
+          labels:
+            Severity: Warning
+          isPaused: false
+          notification_settings:
+            receiver: WeebhookSite
+        - uid: cftr828xg9zi8f
+          title: 'Alerte 2 : Taux d''erreur > 1 % (Critical)'
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cftr76y1ic9a8e
+              model:
+                editorMode: code
+                expr: "(\r\n  ((sum(rate(http_requests_total{status=~\"5..\"}[5m])) or vector(0)) \r\n  / \r\n  sum(rate(http_requests_total[5m]))) * 100\r\n) or vector(0)"
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          labels:
+            Severity: Critical
+          isPaused: false
+          notification_settings:
+            receiver: WeebhookSite
+        - uid: aftr87hulbcaoc
+          title: 'Alerte 3 : Capteur muet > 5 min (Warning)'
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cftr76y1ic9a8e
+              model:
+                editorMode: code
+                expr: sum(rate(sensor_measurements_total[5m])) or vector(0)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.01
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Alerting
+          for: 1m
+          labels:
+            Severity: Warning
+          isPaused: false
+          notification_settings:
+            receiver: WeebhookSite

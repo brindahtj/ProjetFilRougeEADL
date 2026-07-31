@@ -1,9 +1,9 @@
 from os import getenv
 
+user = getenv("RABBITMQ_USER", "guest")
+password = getenv("RABBITMQ_PASS", "guest")
 RABBIT_HOST = getenv("RABBIT_HOST")
 RABBIT_PORT = int(getenv("RABBIT_PORT", "5672"))
-RABBIT_USER = getenv("RABBIT_USER")
-RABBIT_PASS = getenv("RABBIT_PASS")
 EXCHANGE = getenv("EXCHANGE")
 
 # Thresholds for validation

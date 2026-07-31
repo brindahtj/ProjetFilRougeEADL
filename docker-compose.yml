@@ -20,8 +20,8 @@ services:
     image: rabbitmq:3.13-management
     container_name: urbanhub_rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -33,6 +33,21 @@ services:
       timeout: 5s
       retries: 5
 
+  simulator:
+    build: ./sensor-simulator
+    container_name: urbanhub_simulator
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
+      RABBITMQ_DEFAULT_VHOST: ${RABBIT_VHOST}
+      RABBITMQ_QUEUE: ${RABBIT_QUEUE}
+      RABBITMQ_HOST: ${RABBIT_HOST}
+      RABBITMQ_PORT: ${RABBIT_PORT}
+      TARGET_API_URL: ${TARGET_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: urbanhub_pgadmin
@@ -88,7 +103,10 @@ services:
       context: ./services/validation-service
       dockerfile: Dockerfile
     environment:
-      RABBIT_HOST: rabbitmq
+      RABBIT_HOST: ${RABBIT_HOST}
+      RABBIT_PORT: ${RABBIT_PORT}
+      RABBIT_USER: ${RABBIT_USER}
+      RABBIT_PASS: ${RABBIT_PASS}
     ports:
       - "8002:8002"
     depends_on:
@@ -153,9 +171,16 @@ services:
     container_name: grafana
     ports:
       - "3000:3000"
+    volumes:
+      - ./grafana/provisionning/alerting/alerting.yml:/etc/grafana/provisionning/alerting/alerting.yml
+      - ./grafana/provisionning/alerting/alerts.yml:/etc/grafana/provisionning/alerting/alerts.yml
+      - grafana-data:/var/lib/grafana
+
+
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
 
 volumes:
   postgres_data:
   rabbitmq_data:
+  grafana-data:
