@@ -1,0 +1,32 @@
+groups:
+  - name: urbanhub-alerts
+    rules:
+      # 1. Latence P95 > 500 ms sur 5 min -> warning
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latence P95 élevée sur l'API (> 500ms)"
+          description: "La latence P95 est actuellement à {{ $value }}s sur les 5 dernières minutes."
+
+      # 2. Error rate > 1 % sur 5 min -> critical
+      - alert: HighErrorRate
+        expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 100 > 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Taux d'erreur API supérieur à 1%"
+          description: "Le taux d'erreur 5xx est actuellement de {{ $value }}%."
+
+      # 3. Capteur muet > 5 min -> warning
+      - alert: SilentSensor
+        expr: (time() - sensor_last_seen_timestamp_seconds) > 300
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Capteur UrbanHub muet"
+          description: "Le capteur {{ $labels.sensor_id }} n'a pas envoyé de données depuis plus de 5 minutes."
