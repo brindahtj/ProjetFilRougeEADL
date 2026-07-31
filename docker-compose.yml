@@ -20,26 +20,28 @@ services:
     image: rabbitmq:3.13-management
     container_name: urbanhub_rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
+      RABBITMQ_USER: ${RABBIT_USER}
+      RABBITMQ_PASS: ${RABBIT_PASS}
     ports:
       - "5672:5672"
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 120s
+
 
   simulator:
     build: ./sensor-simulator
     container_name: urbanhub_simulator
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
-      RABBITMQ_DEFAULT_VHOST: ${RABBIT_VHOST}
+      RABBITMQ_USER: ${RABBIT_USER}
+      RABBITMQ_PASS: ${RABBIT_PASS}
+      RABBITMQ_VHOST: ${RABBIT_VHOST}
       RABBITMQ_QUEUE: ${RABBIT_QUEUE}
       RABBITMQ_HOST: ${RABBIT_HOST}
       RABBITMQ_PORT: ${RABBIT_PORT}

@@ -1,10 +1,11 @@
 from os import getenv
-
-user = getenv("RABBITMQ_USER", "guest")
-password = getenv("RABBITMQ_PASS", "guest")
+RABBIT_USER = getenv("RABBIT_USER", "guest")
+RABBIT_PASS = getenv("RABBIT_PASS", "guest")
 RABBIT_HOST = getenv("RABBIT_HOST")
 RABBIT_PORT = int(getenv("RABBIT_PORT", "5672"))
-EXCHANGE = getenv("EXCHANGE")
+EXCHANGE = getenv("RABBIT_EXCHANGE", "logs")
+TARGET_API_URL = getenv("TARGET_API_URL", "http://api-python:8000")
+RATE           = int(getenv("MEASUREMENTS_PER_SECOND", "10"))
 
 # Thresholds for validation
 LATITUDE_MIN, LATITUDE_MAX = -90, 90
@@ -32,7 +33,7 @@ Service de validation des mesures brutes (pollution et trafic).
 ## Flux
 1. Ingestion Service envoie mesure brute
 2. Validation Service valide la mesure
-3. Si NORMAL → publiée sur RabbitMQ
+3. Si NORMAL → publiée sur Rabbit
 4. Si CRITICAL → rejetée
 """
 API_VERSION = "1.0.0"
