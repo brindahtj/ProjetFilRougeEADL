@@ -126,29 +126,29 @@ def main():
 
             # Post HTTP direct vers l'API
                 # Post HTTP direct vers l'API
-                try:
-                    # 1. On extrait l'ID du capteur pour l'URL
-                    sensor_id = m["sensor_external_id"]
+            try:
+                # 1. On extrait l'ID du capteur pour l'URL
+                sensor_id = m["sensor_external_id"]
 
-                    # 2. On prépare la liste de métriques dans le format attendu par SensorMetricIn
-                    payload = [
-                        {
-                            "metric": m["metric"],
-                            "value": m["value"],
-                            "unit": m["unit"],
-                            "recorded_at": m["recorded_at"],
-                        }
-                    ]
+                # 2. On prépare la liste de métriques dans le format attendu par SensorMetricIn
+                payload = [
+                    {
+                        "metric": m["metric"],
+                        "value": m["value"],
+                        "unit": m["unit"],
+                        "recorded_at": m["recorded_at"],
+                    }
+                ]
 
-                    # 3. On appelle la bonne route FastApi
-                    requests.post(
-                        f"{TARGET_API_URL}/api/v1/sensors/{sensor_id}/metrics",
-                        json=payload,
-                        timeout=2,
-                    )
-                except Exception as e:
-                    if n % 100 == 0:
-                        print(f"[sim] warning : API POST failed : {e}")
+                # 3. On appelle la bonne route FastApi
+                requests.post(
+                    f"{TARGET_API_URL}/api/v1/sensors/{sensor_id}/metrics",
+                    json=payload,
+                    timeout=2,
+                )
+            except Exception as e:
+                if n % 100 == 0:
+                    print(f"[sim] warning : API POST failed : {e}")
 
     except KeyboardInterrupt:
         print("[sim] Arrêt du simulateur.")

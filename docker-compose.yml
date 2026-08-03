@@ -16,22 +16,7 @@ services:
       timeout: 5s
       retries: 5
 
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: urbanhub_rabbitmq
-    hostname: rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 120s
+
 
 
   simulator:
@@ -46,9 +31,7 @@ services:
       RABBITMQ_PORT: ${RABBITMQ_PORT}
       TARGET_API_URL: ${TARGET_API_URL}
       MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
+
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: urbanhub_pgadmin
@@ -69,6 +52,8 @@ services:
       - "8001:8001"
     environment:
       POSTGRES_HOST: postgres
+      TARGET_API_URL: ${TARGET_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,10 +64,15 @@ services:
       dockerfile: Dockerfile
     container_name: notification_service
     environment:
-      RABBITMQ_HOST: rabbitmq
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      TARGET_API_URL: ${TARGET_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
+
 
   ingestion:
     build:
@@ -90,13 +80,20 @@ services:
       dockerfile: Dockerfile
     environment:
       VALIDATION_SERVICE_URL: http://validation:8002
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      TARGET_API_URL: ${TARGET_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
     ports:
       - "8000:8000"
     depends_on:
       validation:
         condition: service_started
-      rabbitmq:
-        condition: service_healthy
+
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   validation:
@@ -104,15 +101,17 @@ services:
       context: ./services/validation-service
       dockerfile: Dockerfile
     environment:
-      RABBITMQ_HOST: ${RABBITMQ_HOST}
-      RABBITMQ_PORT: ${RABBITMQ_PORT}
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      TARGET_API_URL: ${TARGET_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
     ports:
       - "8002:8002"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
+
     command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
 
   association:
@@ -120,10 +119,14 @@ services:
       context: ./services/association-service
       dockerfile: Dockerfile
     environment:
-      RABBITMQ_HOST: rabbitmq
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      TARGET_API_URL: ${TARGET_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
     command: python -m src.subcriber
 
   analyse:
@@ -131,13 +134,17 @@ services:
       context: ./services/analyse-service
       dockerfile: Dockerfile
     environment:
-      RABBITMQ_HOST: rabbitmq
-      POSTGRES_HOST: postgres
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      TARGET_API_URL: ${TARGET_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
     ports:
       - "8003:8003"
     depends_on:
-      rabbitmq:
-        condition: service_healthy
       postgres:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
@@ -147,11 +154,15 @@ services:
       context: ./services/detection-service
       dockerfile: Dockerfile
     environment:
-      RABBITMQ_HOST: rabbitmq
-      REFERENTIAL_URL: http://referential:8001
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      TARGET_API_URL: ${TARGET_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
     depends_on:
-      rabbitmq:
-        condition: service_healthy
       referential:
         condition: service_started
     command: python -m src.consumer
