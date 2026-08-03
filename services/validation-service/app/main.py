@@ -1,4 +1,5 @@
 import logging
+import time
 import pika
 import json
 from fastapi import FastAPI, HTTPException
@@ -10,7 +11,7 @@ from .models import (
     HealthResponse,
 )
 from .validator import MeasurementValidator
-from .config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, EXCHANGE
+from .config import RABBITMQ_HOST, RABBITMQ_USER,  RABBITMQ_PORT,  RABBITMQ_PASS, EXCHANGE
 from .config import API_TITLE, API_DESCRIPTION, API_VERSION
 
 log = logging.getLogger("validation")
@@ -20,19 +21,36 @@ logging.basicConfig(level=logging.INFO)
 publisher_connection = None
 
 
-def init_rabbit():
-    """Initialise la connexion RabbitMQ."""
+def init_rabbit(retries: int = 30, delay: int = 3):
+    """Initialise la connexion RabbitMQ, avec retry pattern.
+
+    RabbitMQ peut mettre 60-100s à démarrer complètement. Sans retry,
+    un léger décalage entre "healthy" (docker) et "port réellement
+    accepté" fait planter le lifespan de FastAPI au premier essai,
+    d'où le ConnectionRefusedError observé.
+    """
     global publisher_connection
-    try:
-        creds = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-        params = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=creds, heartbeat=600)
-        publisher_connection = pika.BlockingConnection(params)
-        ch = publisher_connection.channel()
-        ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)
-        log.info("✓ RabbitMQ initialized")
-    except Exception as e:
-        log.error("✗ RabbitMQ initialization failed: %s", e)
-        raise
+    creds = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+    params = pika.ConnectionParameters(
+        host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=creds, heartbeat=600
+    )
+
+    for i in range(retries):
+        try:
+            publisher_connection = pika.BlockingConnection(params)
+            ch = publisher_connection.channel()
+            ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)
+            log.info("✓ RabbitMQ initialized")
+            return
+        except (pika.exceptions.AMQPConnectionError, ConnectionError) as e:
+            log.warning(
+                "RabbitMQ pas prêt (essai %d/%d), retry dans %ds… (%s)",
+                i + 1, retries, delay, e,
+            )
+            time.sleep(delay)
+
+    log.error("✗ RabbitMQ initialization failed after %d retries", retries)
+    raise RuntimeError("RabbitMQ indisponible après retries")
 
 
 @asynccontextmanager
@@ -60,8 +78,6 @@ app = FastAPI(
 # ─────────────────────────────────────────────────────────────────────────────
 # ROUTES DE SANTÉ
 # ─────────────────────────────────────────────────────────────────────────────
-
-
 @app.get(
     "/health",
     response_model=HealthResponse,
@@ -77,8 +93,6 @@ def health():
 # ─────────────────────────────────────────────────────────────────────────────
 # ROUTES DE VALIDATION
 # ─────────────────────────────────────────────────────────────────────────────
-
-
 @app.post(
     "/validate",
     response_model=ValidationResponse,
@@ -86,11 +100,9 @@ def health():
     summary="Valider une mesure unique",
     description="""
     Valide une mesure brute (pollution ou trafic).
-
     ### États possibles
     - **NORMAL** : donnée complète et conforme → publication sur RabbitMQ
     - **CRITICAL** : donnée incomplète ou aberrante → rejet et mise de côté
-
     ### Validations effectuées
     - Type de mesure (pollution ou traffic)
     - Champs obligatoires (city, latitude, longitude, timestamp)
@@ -132,7 +144,6 @@ def health():
 )
 def validate(measurement: RawMeasurement, sensor_id: str | None = None):
     """Valide une mesure et la publie si NORMAL.
-
     `sensor_id` (optionnel, query param) : identifiant du capteur à l'origine
     de la mesure, transmis par `ingestion-service` qui le connaît déjà via
     sa propre route. Renvoyé tel quel dans la réponse, avec le flag
@@ -141,7 +152,6 @@ def validate(measurement: RawMeasurement, sensor_id: str | None = None):
     """
     try:
         result = MeasurementValidator.validate(measurement, sensor_id=sensor_id)
-
         if result.state == "NORMAL" and result.measurement:
             _publish_measurement(result.measurement)
             return ValidationResponse(
@@ -176,7 +186,6 @@ def validate(measurement: RawMeasurement, sensor_id: str | None = None):
     summary="Valider un lot de mesures",
     description="""
     Valide un lot de mesures en une seule requête.
-
     Retourne le nombre total, acceptées (NORMAL) et rejetées (CRITICAL).
     """,
     responses={
@@ -208,10 +217,8 @@ def validate_batch(measurements: list[RawMeasurement]):
         results = []
         accepted_count = 0
         rejected_count = 0
-
         for m in measurements:
             result = MeasurementValidator.validate(m)
-
             response = ValidationResponse(
                 state=result.state,
                 valid=result.valid,
@@ -224,7 +231,6 @@ def validate_batch(measurements: list[RawMeasurement]):
                 errors=result.errors,
                 warnings=result.warnings,
             )
-
             if result.state == "NORMAL" and result.measurement:
                 _publish_measurement(result.measurement)
                 accepted_count += 1
@@ -236,9 +242,7 @@ def validate_batch(measurements: list[RawMeasurement]):
             else:
                 rejected_count += 1
                 log.warning("✗ [CRITICAL] Not published: %s", result.errors)
-
             results.append(response)
-
         return BatchValidationResponse(
             results=results,
             total=len(measurements),
@@ -253,8 +257,6 @@ def validate_batch(measurements: list[RawMeasurement]):
 # ─────────────────────────────────────────────────────────────────────────────
 # FONCTIONS UTILITAIRES
 # ─────────────────────────────────────────────────────────────────────────────
-
-
 def _publish_measurement(measurement: RawMeasurement) -> None:
     """Publie une mesure sur RabbitMQ."""
     try:
@@ -270,5 +272,4 @@ def _publish_measurement(measurement: RawMeasurement) -> None:
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8002)

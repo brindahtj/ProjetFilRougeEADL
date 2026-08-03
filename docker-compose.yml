@@ -16,9 +16,21 @@ services:
       timeout: 5s
       retries: 5
 
-
-
-
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
   simulator:
     build: ./sensor-simulator
     container_name: urbanhub_simulator
@@ -29,9 +41,11 @@ services:
       RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_PORT: ${RABBITMQ_PORT}
-      TARGET_API_URL: ${TARGET_API_URL}
+      INGESTION_API_URL: ${INGESTION_API_URL}
       MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
-
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: urbanhub_pgadmin
@@ -42,131 +56,39 @@ services:
       - "5050:80"
     depends_on:
       - postgres
-
-  referential:
-    build:
-      context: ./services/referential-service
-      dockerfile: Dockerfile
-    container_name: referential_service
-    ports:
-      - "8001:8001"
-    environment:
-      POSTGRES_HOST: postgres
-      TARGET_API_URL: ${TARGET_API_URL}
-      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  notification:
-    build:
-      context: ./services/notification-service
-      dockerfile: Dockerfile
-    container_name: notification_service
-    environment:
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASS: ${RABBITMQ_PASS}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
-      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
-      RABBITMQ_HOST: ${RABBITMQ_HOST}
-      RABBITMQ_PORT: ${RABBITMQ_PORT}
-      TARGET_API_URL: ${TARGET_API_URL}
-      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
-
-
   ingestion:
     build:
       context: ./services/ingestion-service
       dockerfile: Dockerfile
     environment:
-      VALIDATION_SERVICE_URL: http://validation:8002
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
       RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
-      RABBITMQ_HOST: ${RABBITMQ_HOST}
-      RABBITMQ_PORT: ${RABBITMQ_PORT}
-      TARGET_API_URL: ${TARGET_API_URL}
-      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
+      VALIDATION_SERVICE_URL: http://validation:8002
     ports:
-      - "8000:8000"
+      - "8005:8005"
     depends_on:
       validation:
         condition: service_started
-
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
+      rabbitmq:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload
   validation:
     build:
       context: ./services/validation-service
       dockerfile: Dockerfile
     environment:
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASS: ${RABBITMQ_PASS}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
-      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_PORT: ${RABBITMQ_PORT}
-      TARGET_API_URL: ${TARGET_API_URL}
-      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      EXCHANGE: ${RABBITMQ_EXCHANGE}
     ports:
       - "8002:8002"
-
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
-
-  association:
-    build:
-      context: ./services/association-service
-      dockerfile: Dockerfile
-    environment:
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASS: ${RABBITMQ_PASS}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
-      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
-      RABBITMQ_HOST: ${RABBITMQ_HOST}
-      RABBITMQ_PORT: ${RABBITMQ_PORT}
-      TARGET_API_URL: ${TARGET_API_URL}
-      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
-    command: python -m src.subcriber
-
-  analyse:
-    build:
-      context: ./services/analyse-service
-      dockerfile: Dockerfile
-    environment:
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASS: ${RABBITMQ_PASS}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
-      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
-      RABBITMQ_HOST: ${RABBITMQ_HOST}
-      RABBITMQ_PORT: ${RABBITMQ_PORT}
-      TARGET_API_URL: ${TARGET_API_URL}
-      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
-    ports:
-      - "8003:8003"
     depends_on:
-      postgres:
+      rabbitmq:
         condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
-
-  detection:
-    build:
-      context: ./services/detection-service
-      dockerfile: Dockerfile
-    environment:
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASS: ${RABBITMQ_PASS}
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
-      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
-      RABBITMQ_HOST: ${RABBITMQ_HOST}
-      RABBITMQ_PORT: ${RABBITMQ_PORT}
-      TARGET_API_URL: ${TARGET_API_URL}
-      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
-    depends_on:
-      referential:
-        condition: service_started
-    command: python -m src.consumer
-
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -177,21 +99,41 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--web.enable-lifecycle'
-
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana/provisionning/alerting/alerting.yml:/etc/grafana/provisionning/alerting/alerting.yml
-      - ./grafana/provisionning/alerting/alerts.yml:/etc/grafana/provisionning/alerting/alerts.yml
+      - ./grafana/provisioning/alerting/alerting.yml:/etc/grafana/provisioning/alerting/alerting.yml
+      - ./grafana/provisioning/alerting/alerts.yml:/etc/grafana/provisioning/alerting/alerts.yml
       - grafana-data:/var/lib/grafana
 
 
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
 
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.0
+    container_name: urbanhub_logstash
+    ports:
+      - "5044:5044"   # Port Beats / Logstash
+      - "50000:50000/udp" # Port syslog par exemple
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    environment:
+      LS_JAVA_OPTS: "-Xms512m -Xmx512m"
+  tempo:
+    image: grafana/tempo:2.4.0
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "3200:3200" # Tempo HTTP
+
 volumes:
   postgres_data:
+  rabbitmq_data:
   grafana-data:

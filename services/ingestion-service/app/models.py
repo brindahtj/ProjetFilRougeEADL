@@ -14,6 +14,7 @@ class RawMeasurement(BaseModel):
                 "zone": "nord",
                 "pollutant": "no2",
                 "value": 85.5,
+                "unit": "µg/m³",
                 "latitude": 48.8566,
                 "longitude": 2.3522,
                 "timestamp": "2026-07-02T10:30:00Z",
@@ -51,6 +52,7 @@ class ValidationResult(BaseModel):
                     "value": 85.5,
                     "latitude": 48.8566,
                     "longitude": 2.3522,
+                    "unit": "µg/m³"
                 },
                 "errors": [],
                 "warnings": [],

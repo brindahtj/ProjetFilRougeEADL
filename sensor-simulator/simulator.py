@@ -4,8 +4,6 @@ from os import getenv
 import random
 import time
 from datetime import datetime, timezone
-
-import pika
 import requests
 
 
@@ -14,9 +12,8 @@ RABBITMQ_USER = getenv("RABBITMQ_USER", "guest")
 RABBITMQ_PASS = getenv("RABBITMQ_PASS", "guest")
 RABBITMQ_HOST = getenv("RABBITMQ_HOST")
 RABBITMQ_PORT = int(getenv("RABBITMQ_PORT", "5672"))
-RABBITMQ_QUEUE= getenv("RABBITMQ_QUEUE")
 EXCHANGE = getenv("RABBITMQ_EXCHANGE", "logs")
-TARGET_API_URL = getenv("TARGET_API_URL", "http://api-python:8000")
+INGESTION_API_URL = getenv("INGESTION_API_URL", "http://ingestion:8005")
 RATE           = int(getenv("MEASUREMENTS_PER_SECOND", "10"))
 
 # Catalogue de capteurs (Air et Trafic uniquement)
@@ -38,30 +35,6 @@ METRICS = {
 }
 
 
-def build_rabbitmq_channel(retries=30):
-    """Connexion à RabbitMQ avec retry pattern."""
-    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-    parameters = pika.ConnectionParameters(
-        host=RABBITMQ_HOST,
-        port=RABBITMQ_PORT,
-        credentials=credentials,
-        heartbeat=600,
-        blocked_connection_timeout=300
-    )
-
-    for i in range(retries):
-        try:
-            connection = pika.BlockingConnection(parameters)
-            channel = connection.channel()
-            # Déclaration de la queue pour s'assurer qu'elle existe
-            channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
-            print(f"[sim] Connecté à RabbitMQ sur {RABBITMQ_HOST}:{RABBITMQ_PORT}")
-            return connection, channel
-        except pika.exceptions.AMQPConnectionError:
-            print(f"[sim] RabbitMQ pas prêt (essai {i+1}/{retries}), retry dans 3s…")
-            time.sleep(3)
-
-    raise RuntimeError("RabbitMQ indisponible après retries")
 
 
 def generate_measurement():
@@ -85,14 +58,11 @@ def generate_measurement():
 
 
 def main():
-    print(f"[sim] Démarrage — RabbitMQ={RABBITMQ_HOST}:{RABBITMQ_PORT} queue={RABBITMQ_QUEUE} api={TARGET_API_URL} rate={RATE}/s")
-
-    connection, channel = build_rabbitmq_channel()
 
     # Attente de l'API HTTP
     for i in range(60):
         try:
-            r = requests.get(f"{TARGET_API_URL}/health", timeout=2)
+            r = requests.get(f"{INGESTION_API_URL}/health", timeout=2)
             if r.status_code == 200:
                 print(f"[sim] API prête : {r.json()}")
                 break
@@ -107,25 +77,6 @@ def main():
     try:
         while True:
             m = generate_measurement()
-
-            # Publication dans RabbitMQ
-            try:
-                channel.basic_publish(
-                    exchange='',
-                    routing_key=RABBITMQ_QUEUE,
-                    body=json.dumps(m),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,  # Rendre le message persistant
-                        content_type='application/json'
-                    )
-                )
-            except pika.exceptions.AMQPError as e:
-                print(f"[sim] Erreur d'envoi RabbitMQ : {e}")
-                # Essai de reconnexion en cas de coupure
-                connection, channel = build_rabbitmq_channel()
-
-            # Post HTTP direct vers l'API
-                # Post HTTP direct vers l'API
             try:
                 # 1. On extrait l'ID du capteur pour l'URL
                 sensor_id = m["sensor_external_id"]
@@ -142,19 +93,16 @@ def main():
 
                 # 3. On appelle la bonne route FastApi
                 requests.post(
-                    f"{TARGET_API_URL}/api/v1/sensors/{sensor_id}/metrics",
+                    f"{INGESTION_API_URL}/api/v1/sensors/{sensor_id}/metrics",
                     json=payload,
                     timeout=2,
                 )
             except Exception as e:
                 if n % 100 == 0:
                     print(f"[sim] warning : API POST failed : {e}")
-
     except KeyboardInterrupt:
         print("[sim] Arrêt du simulateur.")
-    finally:
-        if connection.is_open:
-            connection.close()
+
 
 
 if __name__ == "__main__":

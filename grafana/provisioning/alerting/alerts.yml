@@ -58,7 +58,7 @@ groups:
           notification_settings:
             receiver: WeebhookSite
         - uid: cftr828xg9zi8f
-          title: 'Alerte 2 : Taux d''erreur > 1 % (Critical)'
+          title: "Alerte 2 : Taux d'erreur > 1 % (Critical)"
           condition: C
           data:
             - refId: A
