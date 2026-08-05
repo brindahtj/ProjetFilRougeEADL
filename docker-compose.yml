@@ -64,9 +64,13 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
       RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
       VALIDATION_SERVICE_URL: http://validation:8002
     ports:
       - "8005:8005"
+    volumes:
+      - ingestion_logs:/var/log/app
     depends_on:
       validation:
         condition: service_started
@@ -107,33 +111,55 @@ services:
     volumes:
       - ./grafana/provisioning/alerting/alerting.yml:/etc/grafana/provisioning/alerting/alerting.yml
       - ./grafana/provisioning/alerting/alerts.yml:/etc/grafana/provisioning/alerting/alerts.yml
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - grafana-data:/var/lib/grafana
 
 
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
 
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.12.0
-    container_name: urbanhub_logstash
-    ports:
-      - "5044:5044"   # Port Beats / Logstash
-      - "50000:50000/udp" # Port syslog par exemple
-    volumes:
-      - ./logstash/pipeline:/usr/share/logstash/pipeline
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: urbanhub_elasticsearch
     environment:
-      LS_JAVA_OPTS: "-Xms512m -Xmx512m"
-  tempo:
-    image: grafana/tempo:2.4.0
-    container_name: tempo
-    command: [ "-config.file=/etc/tempo.yaml" ]
-    volumes:
-      - ./tempo.yaml:/etc/tempo.yaml
+      - discovery.type=single-node
+      - xpack.security.enabled=false          # pas de sécurité, exercice only
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m         # limite mémoire raisonnable
     ports:
-      - "4317:4317" # OTLP gRPC
-      - "3200:3200" # Tempo HTTP
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.0
+    container_name: urbanhub_logstash
+    volumes:
+      - ingestion_logs:/var/log/app:ro
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yml" ]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml
+    ports:
+      - "3200:3200"   # UI/API Tempo (utilisé par le datasource Grafana)
+      - "4317:4317"   # OTLP gRPC (utilisé par ingestion-service)
+
+
 
 volumes:
   postgres_data:
   rabbitmq_data:
   grafana-data:
+  ingestion_logs:
+  es_data:

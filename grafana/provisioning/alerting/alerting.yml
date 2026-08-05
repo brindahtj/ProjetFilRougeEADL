@@ -7,7 +7,7 @@ contactPoints:
       - uid: webhook-site-01
         type: webhook
         settings:
-          url: https://webhook.site/b23b2060-9a6d-46dc-8f01-567a810443ce
+          url: https://webhook.site/110f8c60-1e1f-4cc1-851b-b2a193c1b5c6
           httpMethod: POST
 
 policies:

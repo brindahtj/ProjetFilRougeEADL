@@ -4,3 +4,7 @@ requests
 pika
 pydantic
 prometheus-fastapi-instrumentator
+opentelemetry-distro
+opentelemetry-exporter-otlp
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-pika
