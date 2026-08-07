@@ -86,6 +86,7 @@ services:
       RABBITMQ_PORT: ${RABBITMQ_PORT}
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
       EXCHANGE: ${RABBITMQ_EXCHANGE}
     ports:
       - "8002:8002"
@@ -141,6 +142,18 @@ services:
       referential:
         condition: service_started
     command: python -m src.consumer
+  referential:
+    build:
+      context: ./services/referential-service
+      dockerfile: Dockerfile
+    container_name: referential_service
+    ports:
+      - "8001:8001"
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus

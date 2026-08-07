@@ -1,9 +1,12 @@
 import logging
-import time
-import pika
 import json
-from fastapi import FastAPI, HTTPException
+import threading
+import time
 from contextlib import asynccontextmanager
+
+import pika
+from fastapi import FastAPI, HTTPException
+
 from .models import (
     RawMeasurement,
     ValidationResponse,
@@ -11,17 +14,32 @@ from .models import (
     HealthResponse,
 )
 from .validator import MeasurementValidator
-from .config import RABBITMQ_HOST, RABBITMQ_USER,  RABBITMQ_PORT,  RABBITMQ_PASS, EXCHANGE
-from .config import API_TITLE, API_DESCRIPTION, API_VERSION
+from .config import (
+    RABBITMQ_HOST,
+    RABBITMQ_USER,
+    RABBITMQ_PORT,
+    RABBITMQ_PASS,
+    RABBITMQ_QUEUE,  # queue où ingestion-service publie les mesures brutes
+    EXCHANGE,
+    API_TITLE,
+    API_DESCRIPTION,
+    API_VERSION,
+)
 
-log = logging.getLogger("validation")
 logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
-# RabbitMQ connection
-publisher_connection = None
+PREFETCH_COUNT = 10  # nb de messages non-ack en parallèle max côté consumer
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RABBITMQ — PUBLISHER (vers EXCHANGE, pour association-service)
+# ─────────────────────────────────────────────────────────────────────────────
+_publisher_lock = threading.Lock()
+publisher_connection: pika.BlockingConnection | None = None
+publisher_channel = None
 
 
-def init_rabbit(retries: int = 30, delay: int = 3):
+def init_rabbit(retries: int = 30, delay: int = 3) -> None:
     """Initialise la connexion RabbitMQ, avec retry pattern.
 
     RabbitMQ peut mettre 60-100s à démarrer complètement. Sans retry,
@@ -29,17 +47,23 @@ def init_rabbit(retries: int = 30, delay: int = 3):
     accepté" fait planter le lifespan de FastAPI au premier essai,
     d'où le ConnectionRefusedError observé.
     """
-    global publisher_connection
+    global publisher_connection, publisher_channel
     creds = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
     params = pika.ConnectionParameters(
-        host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=creds, heartbeat=600
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
+        credentials=creds,
+        heartbeat=600,
+        blocked_connection_timeout=300,
     )
 
     for i in range(retries):
         try:
             publisher_connection = pika.BlockingConnection(params)
-            ch = publisher_connection.channel()
-            ch.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)
+            publisher_channel = publisher_connection.channel()
+            publisher_channel.exchange_declare(
+                exchange=EXCHANGE, exchange_type="direct", durable=True
+            )
             log.info("✓ RabbitMQ initialized")
             return
         except (pika.exceptions.AMQPConnectionError, ConnectionError) as e:
@@ -53,13 +77,187 @@ def init_rabbit(retries: int = 30, delay: int = 3):
     raise RuntimeError("RabbitMQ indisponible après retries")
 
 
+def _publish_measurement(measurement: RawMeasurement) -> None:
+    """Publie une mesure sur RabbitMQ.
+
+    FastAPI exécute les routes sync dans un threadpool : plusieurs threads
+    peuvent appeler cette fonction en même temps. pika.BlockingConnection
+    n'est pas thread-safe, d'où le lock. On tente aussi une reconnexion
+    automatique si le canal/la connexion est tombé.
+    """
+    global publisher_connection, publisher_channel
+    routing_key = measurement.type
+    body = json.dumps(measurement.dict(), default=str)
+
+    with _publisher_lock:
+        try:
+            publisher_channel.basic_publish(
+                exchange=EXCHANGE,
+                routing_key=routing_key,
+                body=body,
+                properties=pika.BasicProperties(
+                    delivery_mode=2,
+                    content_type="application/json",
+                ),
+            )
+        except (pika.exceptions.AMQPError, AttributeError) as e:
+            log.warning("Erreur de publication RabbitMQ (%s), reconnexion…", e)
+            init_rabbit()
+            publisher_channel.basic_publish(
+                exchange=EXCHANGE,
+                routing_key=routing_key,
+                body=body,
+                properties=pika.BasicProperties(
+                    delivery_mode=2,
+                    content_type="application/json",
+                ),
+            )
+
+    log.info("✓ Published to %s: %s", routing_key, measurement.city)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RABBITMQ — CONSUMER (depuis RABBITMQ_QUEUE, alimentée par ingestion-service)
+# ─────────────────────────────────────────────────────────────────────────────
+_consumer_connection: pika.BlockingConnection | None = None
+_consumer_channel = None
+_consumer_thread: threading.Thread | None = None
+_should_stop = threading.Event()
+
+
+def _connect_consumer(retries: int = 30, delay: int = 3) -> None:
+    global _consumer_connection, _consumer_channel
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+    parameters = pika.ConnectionParameters(
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
+        credentials=credentials,
+        heartbeat=600,
+        blocked_connection_timeout=300,
+    )
+
+    for i in range(retries):
+        try:
+            _consumer_connection = pika.BlockingConnection(parameters)
+            _consumer_channel = _consumer_connection.channel()
+            _consumer_channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+            _consumer_channel.basic_qos(prefetch_count=PREFETCH_COUNT)
+            log.info(
+                "✓ Consumer connecté à RabbitMQ sur %s:%s (queue=%s)",
+                RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_QUEUE,
+            )
+            return
+        except pika.exceptions.AMQPConnectionError as e:
+            log.warning(
+                "RabbitMQ pas prêt (essai %d/%d), retry dans %ds… (%s)",
+                i + 1, retries, delay, e,
+            )
+            time.sleep(delay)
+
+    raise RuntimeError("RabbitMQ indisponible après retries (consumer)")
+
+
+def _handle_raw_measurement(body: bytes) -> bool:
+    """
+    Parse + valide une mesure brute reçue d'ingestion-service.
+    Publie sur EXCHANGE uniquement si NORMAL.
+    Retourne True si le message doit être ack, False sinon.
+    """
+    try:
+        payload = json.loads(body)
+        sensor_id = payload.pop("sensor_id", None)
+        measurement = RawMeasurement(**payload)
+    except Exception as e:
+        log.exception("Message illisible / invalide, rejeté sans requeue : %s", e)
+        return True  # message malformé : on l'ack pour ne pas boucler dessus
+
+    try:
+        result = MeasurementValidator.validate(measurement, sensor_id=sensor_id)
+    except Exception as e:
+        log.exception("Erreur pendant la validation : %s", e)
+        return False  # erreur transitoire potentielle -> on retente (nack requeue)
+
+    if result.state == "NORMAL" and result.measurement:
+        _publish_measurement(result.measurement)
+        log.info(
+            "✓ [NORMAL] %s / %s -> republié sur %s",
+            result.measurement.type, result.measurement.city, EXCHANGE,
+        )
+    else:
+        log.warning("✗ [CRITICAL] Mesure rejetée : %s", result.errors)
+
+    return True
+
+
+def _on_message(channel, method, properties, body):
+    try:
+        should_ack = _handle_raw_measurement(body)
+    except Exception:
+        log.exception("Erreur inattendue dans le traitement du message")
+        should_ack = False
+
+    if should_ack:
+        channel.basic_ack(delivery_tag=method.delivery_tag)
+    else:
+        # requeue=False pour éviter les boucles infinies sur un message toxique
+        # (idéalement une dead-letter queue configurée sur RABBITMQ_QUEUE)
+        channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+
+def _consume_loop() -> None:
+    global _consumer_connection, _consumer_channel
+
+    while not _should_stop.is_set():
+        try:
+            if _consumer_connection is None or _consumer_connection.is_closed:
+                _connect_consumer()
+
+            _consumer_channel.basic_consume(
+                queue=RABBITMQ_QUEUE,
+                on_message_callback=_on_message,
+                auto_ack=False,
+            )
+            log.info("Démarrage de la consommation RabbitMQ (%s)…", RABBITMQ_QUEUE)
+            _consumer_channel.start_consuming()
+
+        except pika.exceptions.AMQPConnectionError as e:
+            log.warning("Connexion RabbitMQ (consumer) perdue : %s, reconnexion…", e)
+            time.sleep(3)
+        except Exception as e:
+            if not _should_stop.is_set():
+                log.exception("Erreur inattendue dans la boucle consumer : %s", e)
+                time.sleep(3)
+
+
+def start_consumer() -> None:
+    global _consumer_thread
+    _should_stop.clear()
+    _consumer_thread = threading.Thread(target=_consume_loop, daemon=True)
+    _consumer_thread.start()
+
+
+def stop_consumer() -> None:
+    _should_stop.set()
+    if _consumer_channel is not None and _consumer_channel.is_open:
+        try:
+            _consumer_channel.stop_consuming()
+        except Exception:
+            pass
+    if _consumer_connection is not None and _consumer_connection.is_open:
+        _consumer_connection.close()
+    if _consumer_thread is not None:
+        _consumer_thread.join(timeout=5)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    init_rabbit()
+    init_rabbit()       # connexion publisher (-> EXCHANGE, association-service)
+    start_consumer()    # connexion consumer (<- RABBITMQ_QUEUE, ingestion-service)
     yield
     # Shutdown
-    if publisher_connection:
+    stop_consumer()
+    if publisher_connection and publisher_connection.is_open:
         publisher_connection.close()
         log.info("RabbitMQ connection closed")
 
@@ -252,22 +450,6 @@ def validate_batch(measurements: list[RawMeasurement]):
     except Exception as e:
         log.exception("Batch validation error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# FONCTIONS UTILITAIRES
-# ─────────────────────────────────────────────────────────────────────────────
-def _publish_measurement(measurement: RawMeasurement) -> None:
-    """Publie une mesure sur RabbitMQ."""
-    try:
-        ch = publisher_connection.channel()
-        routing_key = measurement.type
-        body = json.dumps(measurement.dict(), default=str)
-        ch.basic_publish(exchange=EXCHANGE, routing_key=routing_key, body=body)
-        log.info("✓ Published to %s: %s", routing_key, measurement.city)
-    except Exception as e:
-        log.exception("Failed to publish measurement: %s", e)
-        raise
 
 
 if __name__ == "__main__":

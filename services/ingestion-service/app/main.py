@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from prometheus_client import Counter, Gauge
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from .config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_PORT, RABBITMQ_QUEUE
+from .config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_PORT, RABBITMQ_QUEUE, VALIDATION_SERVICE_URL
 from .exceptions import InvalidSensorIdError, MetricValidationError
 from .schemas import SensorMetricIn, SensorMetricsResult
 from opentelemetry import trace
@@ -223,7 +223,7 @@ def handle_metric_validation_error(request: Request, exc: MetricValidationError)
 def health():
     return {"status": "ok", "service": "ingestion-service"}
 
-
+@app.post
 @app.post(
     "/api/v1/sensors/{sensor_id}/metrics",
     response_model=SensorMetricsResult,
