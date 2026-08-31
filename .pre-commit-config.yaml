@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0
+    hooks:
+        - id: ruff
+          args: [ --fix ]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+        - id: gitleaks
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.9
+    hooks:
+        - id: bandit
+          args: [ "-r", "api/", "-x", "tests/" ]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff-format

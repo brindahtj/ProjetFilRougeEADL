@@ -1,0 +1,48 @@
+name: CI Documentation
+
+on:
+  push:
+    branches: [ main, staging, Refacto ]
+    paths:
+      - 'ma-doc-diataxis/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+        branches: [ main, staging ]
+        paths:
+          - 'ma-doc-diataxis/**'
+          - '.github/workflows/docs.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Crucial pour que Mike lise l'historique de gh-pages
+
+      - name: Configurer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Installer les dépendances
+        run: |
+            python -m pip install --upgrade pip
+            pip install pytest pytest-cov mkdocs-material mike pydantic fastapi httpx python-dotenv pika
+
+      - name: Configurer Git pour Mike
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Déployer la documentation avec Mike
+        run: |
+          cd services/validation-service/ma-doc-diataxis
+          
+          git fetch origin gh-pages:gh-pages || true
+          
+          python -m mike deploy latest "Version Actuelle" --update-aliases --push

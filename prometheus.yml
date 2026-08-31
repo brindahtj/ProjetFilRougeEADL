@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  # Golden Signals (Rate / Errors / Duration) exposés par
+  # prometheus-fastapi-instrumentator sur /metrics
+  - job_name: "ingestion-service"
+    static_configs:
+      - targets: ["ingestion:8005"]
+
+  # Saturation RabbitMQ (queue depth, consumers, connexions...)
+  # Nécessite le plugin rabbitmq_prometheus (déjà activé sur votre image,
+  # visible dans les logs de démarrage : "* rabbitmq_prometheus")
+  - job_name: "rabbitmq"
+    static_configs:
+      - targets: ["rabbitmq:15692"]
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

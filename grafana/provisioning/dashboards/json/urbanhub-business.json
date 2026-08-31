@@ -1,0 +1,82 @@
+{
+  "title": "UrbanHub - Métier",
+  "uid": "urbanhub-business",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "time": { "from": "now-24h", "to": "now" },
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Mesures/s par type capteur",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(urbanhub_measurements_total[1m])) by (sensor_type)",
+          "legendFormat": "{{sensor_type}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Alertes déclenchées / jour",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(increase(urbanhub_alerts_total[1d])) by (metric)",
+          "legendFormat": "{{metric}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Freshness min/max par type capteur (secondes)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "min_over_time(urbanhub_measurement_freshness_seconds[5m])",
+          "legendFormat": "min {{sensor_type}}"
+        },
+        {
+          "expr": "max_over_time(urbanhub_measurement_freshness_seconds[5m])",
+          "legendFormat": "max {{sensor_type}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Coût cumulé du mois (simulé)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "currencyEUR" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "urbanhub_monthly_cost_euros",
+          "legendFormat": "coût"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Logs récents (Elasticsearch via Logstash)",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "targets": [
+        {
+          "query": "*",
+          "metrics": [{ "type": "logs" }]
+        }
+      ]
+    }
+  ]
+}

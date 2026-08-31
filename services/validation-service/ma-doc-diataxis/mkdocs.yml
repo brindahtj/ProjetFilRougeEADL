@@ -1,0 +1,28 @@
+site_name: Ma Documentation Diátaxis UrbanHub
+theme:
+  name: material
+  palette:
+    primary: indigo
+  features:
+    - navigation.tabs
+    - navigation.sections
+    # Cette ligne est essentielle pour que le sélecteur de version s'affiche :
+    - navigation.instant
+
+nav:
+  - Accueil: index.md
+  - Tutoriels:
+      - Premier pas: tutorials/getting-started.md
+  - Guides pratiques:
+      - Comment configurer X: how-to/configure-x.md
+  - Référence:
+      - API-Documentation: reference/api.md
+  - Explications:
+      - Pourquoi cette architecture: explanation/architecture.md
+  - Rapports d'incidents:
+      - Incident Juin 2026: reports/june_incident.md
+
+
+extra:
+  version:
+    provider: mike

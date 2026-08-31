@@ -1,0 +1,225 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: urbanhub_postgres
+    environment:
+      POSTGRES_DB: urbanhub
+      POSTGRES_USER: urbanhub_user
+      POSTGRES_PASSWORD: urbanhub_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U urbanhub_user -d urbanhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+  simulator:
+    build: ./sensor-simulator
+    container_name: urbanhub_simulator
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      INGESTION_API_URL: ${INGESTION_API_URL}
+      MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: urbanhub_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@urbanhub.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+  ingestion:
+    build:
+      context: ./services/ingestion-service
+      dockerfile: Dockerfile
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      VALIDATION_SERVICE_URL: http://validation:8002
+    ports:
+      - "8005:8005"
+    volumes:
+      - ingestion_logs:/var/log/app
+    depends_on:
+      validation:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload
+  validation:
+    build:
+      context: ./services/validation-service
+      dockerfile: Dockerfile
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      EXCHANGE: ${RABBITMQ_EXCHANGE}
+    ports:
+      - "8002:8002"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+  notification:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification_service
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  association:
+    build:
+      context: ./services/association-service
+      dockerfile: Dockerfile
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: python -m src.subcriber
+  analyse:
+    build:
+      context: ./services/analyse-service
+      dockerfile: Dockerfile
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      POSTGRES_HOST: postgres
+    ports:
+      - "8003:8003"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
+  detection:
+    build:
+      context: ./services/detection-service
+      dockerfile: Dockerfile
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      REFERENTIAL_URL: http://referential:8001
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      referential:
+        condition: service_started
+    command: python -m src.consumer
+  referential:
+    build:
+      context: ./services/referential-service
+      dockerfile: Dockerfile
+    container_name: referential_service
+    ports:
+      - "8001:8001"
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-lifecycle'
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/alerting/alerting.yml:/etc/grafana/provisioning/alerting/alerting.yml
+      - ./grafana/provisioning/alerting/alerts.yml:/etc/grafana/provisioning/alerting/alerts.yml
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana-data:/var/lib/grafana
+
+
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: urbanhub_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false          # pas de sécurité, exercice only
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m         # limite mémoire raisonnable
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.0
+    container_name: urbanhub_logstash
+    volumes:
+      - ingestion_logs:/var/log/app:ro
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yml" ]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml
+    ports:
+      - "3200:3200"   # UI/API Tempo (utilisé par le datasource Grafana)
+      - "4317:4317"   # OTLP gRPC (utilisé par ingestion-service)
+
+
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  grafana-data:
+  ingestion_logs:
+  es_data:
