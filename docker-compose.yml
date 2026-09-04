@@ -1,3 +1,14 @@
+networks:
+  urbanhub-front:
+    driver: bridge
+  urbanhub-app:
+    driver: bridge
+    internal: true      # aucun accès direct depuis l'extérieur du VPS
+  urbanhub-db:
+    driver: bridge
+    internal: true      # base isolée, accessible uniquement par les services qui en ont besoin
+  urbanhub-monitoring:
+    driver: bridge
 services:
   postgres:
     image: postgres:16
@@ -7,7 +18,7 @@ services:
       POSTGRES_USER: urbanhub_user
       POSTGRES_PASSWORD: urbanhub_password
     ports:
-      - "5432:5432"
+      - "5438:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -15,11 +26,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks: [urbanhub-db]
 
   rabbitmq:
     image: rabbitmq:3.13-management
-    container_name: urbanhub_rabbitmq
-    hostname: rabbitmq
+    container_name: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
@@ -32,8 +43,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 120s
-
-
+    networks: [urbanhub-app]
   simulator:
     build: ./sensor-simulator
     container_name: urbanhub_simulator
@@ -44,11 +54,13 @@ services:
       RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_PORT: ${RABBITMQ_PORT}
-      TARGET_API_URL: ${TARGET_API_URL}
+      INGESTION_API_URL: ${INGESTION_API_URL}
       MEASUREMENTS_PER_SECOND: ${MEASUREMENTS_PER_SECOND}
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks: [urbanhub-app]
+
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: urbanhub_pgadmin
@@ -59,19 +71,49 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+    networks: [urbanhub-app]
 
-  referential:
+  ingestion:
     build:
-      context: ./services/referential-service
+      context: ./services/ingestion-service
       dockerfile: Dockerfile
-    container_name: referential_service
-    ports:
-      - "8001:8001"
     environment:
-      POSTGRES_HOST: postgres
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      VALIDATION_SERVICE_URL: http://validation:8002
+    ports:
+      - "8005:8005"
+    volumes:
+      - ingestion_logs:/var/log/app
     depends_on:
-      postgres:
+      validation:
+        condition: service_started
+      rabbitmq:
         condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload
+    networks: [urbanhub-app, urbanhub-front]
+
+  validation:
+    build:
+      context: ./services/validation-service
+      dockerfile: Dockerfile
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE}
+      EXCHANGE: ${RABBITMQ_EXCHANGE}
+    ports:
+      - "8002:8002"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+    networks: [urbanhub-app]
 
   notification:
     build:
@@ -83,37 +125,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-
-  ingestion:
-    build:
-      context: ./services/ingestion-service
-      dockerfile: Dockerfile
-    environment:
-      VALIDATION_SERVICE_URL: http://validation:8002
-    ports:
-      - "8000:8000"
-    depends_on:
-      validation:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  validation:
-    build:
-      context: ./services/validation-service
-      dockerfile: Dockerfile
-    environment:
-      RABBITMQ_HOST: ${RABBITMQ_HOST}
-      RABBITMQ_PORT: ${RABBITMQ_PORT}
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASS: ${RABBITMQ_PASS}
-    ports:
-      - "8002:8002"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+    networks: [urbanhub-app, urbanhub-front]   # front pour sortir vers le CSU externe
 
   association:
     build:
@@ -125,7 +137,7 @@ services:
       rabbitmq:
         condition: service_healthy
     command: python -m src.subcriber
-
+    networks: [urbanhub-app]
   analyse:
     build:
       context: ./services/analyse-service
@@ -141,6 +153,7 @@ services:
       postgres:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
+    networks: [urbanhub-app, urbanhub-db]
 
   detection:
     build:
@@ -154,8 +167,21 @@ services:
         condition: service_healthy
       referential:
         condition: service_started
+    networks: [urbanhub-app]
     command: python -m src.consumer
-
+  referential:
+    build:
+      context: ./services/referential-service
+      dockerfile: Dockerfile
+    container_name: referential_service
+    ports:
+      - "8001:8001"
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [urbanhub-app]
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -166,21 +192,71 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--web.enable-lifecycle'
-
+    networks: [urbanhub-monitoring, urbanhub-app]
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "3032:3000"
     volumes:
-      - ./grafana/provisionning/alerting/alerting.yml:/etc/grafana/provisionning/alerting/alerting.yml
-      - ./grafana/provisionning/alerting/alerts.yml:/etc/grafana/provisionning/alerting/alerts.yml
+      - ./grafana/provisioning/alerting/alerting.yml:/etc/grafana/provisioning/alerting/alerting.yml
+      - ./grafana/provisioning/alerting/alerts.yml:/etc/grafana/provisioning/alerting/alerts.yml
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - grafana-data:/var/lib/grafana
 
 
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks: [urbanhub-monitoring]
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: urbanhub_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false          # pas de sécurité, exercice only
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"         # limite mémoire raisonnable
+    ports:
+      - "9223:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    hostname: elasticsearch
+    extra_hosts:
+      - "elasticsearch:127.0.0.1"
+    networks: [urbanhub-monitoring]
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.0
+    container_name: urbanhub_logstash
+    volumes:
+      - ingestion_logs:/var/log/app:ro
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks: [urbanhub-monitoring, urbanhub-app]
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yml" ]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml
+    ports:
+      - "3200:3200"   # UI/API Tempo (utilisé par le datasource Grafana)
+      - "4317:4317"   # OTLP gRPC (utilisé par ingestion-service)
+
+    networks: [urbanhub-monitoring, urbanhub-app]
+
 
 volumes:
   postgres_data:
+  rabbitmq_data:
   grafana-data:
+  ingestion_logs:
+  es_data:

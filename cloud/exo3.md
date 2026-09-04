@@ -62,7 +62,6 @@ awslocal-docker ec2 create-subnet --vpc-id $VPC_ID --cidr-block 10.0.99.0/24 \
 ||  Name          |  sc-subnet-mgmt                       ||
 ```
 
-📷 *[Capture d'écran à insérer ici : sortie complète de la commande]*
 
 ---
 
@@ -117,7 +116,6 @@ awslocal-docker ec2 authorize-security-group-ingress \
 ]
 ```
 
-📷 *[Capture d'écran à insérer ici]*
 
 ### Principe de sécurité appliqué (moindre privilège)
 
