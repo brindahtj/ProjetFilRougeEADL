@@ -2,12 +2,12 @@ name: CI/CD DevSecOps Pipeline
 
 on:
   push:
-    branches: [main, staging, Refacto]
+    branches: [main, staging, branch-brinda]
     paths:
       - 'services/detection-service/**'
       - '.github/workflows/ci.yml'
   pull_request:
-    branches: [main, staging]
+    branches: [main, staging, branch-brinda]
     paths:
       - 'services/detection-service/**'
       - '.github/workflows/ci.yml'
