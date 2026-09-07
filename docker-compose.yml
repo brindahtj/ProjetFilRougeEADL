@@ -71,9 +71,10 @@ services:
       - "5050:80"
     depends_on:
       - postgres
-    networks: [urbanhub-app]
+    networks: [urbanhub-app, urbanhub-db]
 
   ingestion:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-ingestion-service:latest
     build:
       context: ./services/ingestion-service
       dockerfile: Dockerfile
@@ -97,6 +98,7 @@ services:
     networks: [urbanhub-app, urbanhub-front]
 
   validation:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-validation-service:latest
     build:
       context: ./services/validation-service
       dockerfile: Dockerfile
@@ -116,6 +118,7 @@ services:
     networks: [urbanhub-app]
 
   notification:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-notification-service:latest
     build:
       context: ./services/notification-service
       dockerfile: Dockerfile
@@ -128,6 +131,7 @@ services:
     networks: [urbanhub-app, urbanhub-front]   # front pour sortir vers le CSU externe
 
   association:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-association-service:latest
     build:
       context: ./services/association-service
       dockerfile: Dockerfile
@@ -139,6 +143,7 @@ services:
     command: python -m src.subcriber
     networks: [urbanhub-app]
   analyse:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-analyse-service:latest
     build:
       context: ./services/analyse-service
       dockerfile: Dockerfile
@@ -156,6 +161,7 @@ services:
     networks: [urbanhub-app, urbanhub-db]
 
   detection:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-detection-service:latest
     build:
       context: ./services/detection-service
       dockerfile: Dockerfile
@@ -170,6 +176,7 @@ services:
     networks: [urbanhub-app]
     command: python -m src.consumer
   referential:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-referential-service:latest
     build:
       context: ./services/referential-service
       dockerfile: Dockerfile
@@ -181,7 +188,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks: [urbanhub-app]
+    networks: [urbanhub-app, urbanhub-db]
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus

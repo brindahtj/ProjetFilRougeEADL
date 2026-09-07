@@ -1,20 +1,31 @@
-name: CI - Association Service
+name: CI/CD DevSecOps Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, staging, Refacto]
     paths:
       - 'services/association-service/**'
-      - '.github/workflows/ci-association-service.yml'
+      - '.github/workflows/ci.yml'
   pull_request:
-    branches: [main, develop]
+    branches: [main, staging]
     paths:
       - 'services/association-service/**'
-      - '.github/workflows/ci-association-service.yml'
+      - '.github/workflows/ci.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: /projetfilrougeeadl
 
 jobs:
-  lint-test-build:
+  # ==========================================
+  # 1. LINT, TESTS & COVERAGE (PYTHON)
+  # ==========================================
+
+  quality-and-tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/association-service
     steps:
       - uses: actions/checkout@v4
 
@@ -25,27 +36,173 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd services/association-service
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt ruff pytest pytest-cov pytest-asyncio httpx
+          pip install -r requirements.txt
 
       - name: Lint with Ruff
-        run: |
-          cd services/association-service
-          ruff check src
+        run: ruff check .
 
-      - name: Run tests if present
+      - name: Run Unit Tests with Coverage
         run: |
-          cd services/association-service
-          if [ -d tests ]; then
-            pytest --cov=src --cov-report=term-missing
-          else
-            echo "No tests directory for association-service"
-          fi
+          pytest --cov=. --cov-report=term --cov-report=xml:coverage.xml --cov-fail-under=60
 
-      - name: Build Docker image
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # ==========================================
+  # 2. SAST (Bandit)
+  # ==========================================
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Bandit (Python SAST)
+        run: |
+          pip install bandit
+          bandit -r . -f sarif -o bandit-results.sarif || true
+
+      - name: Upload SARIF Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-sarif-reports
+          path: "*.sarif"
+
+  # ==========================================
+  # 3. SCA & SECRETS (Trivy FS & Gitleaks)
+  # ==========================================
+  sca-and-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks (Secrets Detection)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy FS Scan (Dependencies)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          severity: 'CRITICAL'
+          exit-code: '1'
+
+  # ==========================================
+  # 4. BUILD, CONTAINER SCAN, PUSH & COSIGN
+  # ==========================================
+  build-and-push:
+    needs: [quality-and-tests, sast, sca-and-secrets]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Local Image for Scanning
         uses: docker/build-push-action@v5
         with:
-          context: ./services/association-service
-          push: false
-          tags: association-service:latest
+          context: services/association-service
+          file: services/association-service/Dockerfile
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
+
+      - name: Scan Docker Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test'
+          severity: 'CRITICAL'
+          ignore-unfixed: true # on va ignorer les vulnérabilités pour lesquelles aucun correctif n'existe encore, sinon un distroless aurait pu être interessant
+          exit-code: '1'
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Final Image
+        id: build-publish
+        uses: docker/build-push-action@v5
+        with:
+          context: services/association-service
+          file: services/association-service/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.3.0
+
+      - name: Sign Image (Keyless Cosign)
+        run: |
+          cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-publish.outputs.digest }}
+
+      - name: Generate and Attest SBOM (Syft / Cosign)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-publish.outputs.digest }} -o spdx-json > sbom.spdx.json
+          cosign attest --yes --predicate sbom.spdx.json --type spdx ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-publish.outputs.digest }}
+
+  # ==========================================
+  # 5. STAGING DEPLOY, SMOKE TEST & DAST
+  # ==========================================
+  deploy-staging-and-dast:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Staging (Docker Compose)
+        run: |
+          docker-compose -f docker-compose.staging.yml up -d --build
+
+      - name: Smoke Test
+        run: |
+          sleep 5
+          curl -f http://localhost:8080/health || exit 1
+
+      - name: OWASP ZAP DAST Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
+          target: 'http://localhost:8080'
+          fail_action: true
+          cmd_options: '-a -j -c zap.conf' # Configuration pour fail sur vulnérabilités HIGH
+  deploy-production:
+      needs: build-and-push
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      runs-on: ubuntu-latest
+      steps:
+        - name: Deploy via SSH
+          uses: appleboy/ssh-action@v1
+          with:
+            host: ${{ secrets.VPS_HOST }}
+            username: ${{ secrets.VPS_USER }}
+            key: ${{ secrets.VPS_SSH_KEY }}
+            script: |
+              cd ~/ProjetFilRougeEADL
+              git pull origin main
+              echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+              docker compose pull
+              docker compose up -d
+              docker compose ps
+
+        - name: Health check post-déploiement
+          run: |
+            sleep 15
+            curl -f http://${{ secrets.VPS_HOST }}:8005/health || echo "⚠️ Health check ingestion a échoué"
