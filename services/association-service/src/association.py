@@ -77,13 +77,14 @@ class AssociationEngine:
             zone = reading.zone or "unknown"
             # Arrondir au time_window
             ts = reading.timestamp
+
+
+            window_minutes = int(self.time_window.total_seconds() // 60)
+
             bucket_minute = (
-                (ts.hour * 60 + ts.minute)
-                // self.time_window.total_seconds()
-                // 60
-                * self.time_window.total_seconds()
-                // 60
-            )
+                ts.minute // window_minutes
+            ) * window_minutes
+            
             time_bucket = f"{ts.hour:02d}:{bucket_minute:02d}"
 
             key = (city, zone, time_bucket)

@@ -13,6 +13,9 @@ from .validator import MeasurementValidator
 from .config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, EXCHANGE
 from .config import API_TITLE, API_DESCRIPTION, API_VERSION
 
+
+
+
 log = logging.getLogger("validation")
 logging.basicConfig(level=logging.INFO)
 

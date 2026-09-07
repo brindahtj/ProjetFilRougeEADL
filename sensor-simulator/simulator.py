@@ -12,9 +12,9 @@ import requests
 
 RABBITMQ_USER = getenv("RABBITMQ_USER", "guest")
 RABBITMQ_PASS = getenv("RABBITMQ_PASS", "guest")
-RABBITMQ_HOST = getenv("RABBITMQ_HOST")
-RABBITMQ_PORT = int(getenv("RABBITMQ_PORT", "5672"))
-RABBITMQ_QUEUE= getenv("RABBITMQ_QUEUE")
+RABBIT_HOST = getenv("RABBITMQ_HOST")
+RABBIT_PORT = int(getenv("RABBITMQ_PORT", "5672"))
+RABBITMQ_QUEUE = getenv("RABBITMQ_QUEUE", "measurements")
 EXCHANGE = getenv("RABBITMQ_EXCHANGE", "logs")
 TARGET_API_URL = getenv("TARGET_API_URL", "http://api-python:8000")
 RATE           = int(getenv("MEASUREMENTS_PER_SECOND", "10"))
@@ -42,8 +42,8 @@ def build_rabbitmq_channel(retries=30):
     """Connexion à RabbitMQ avec retry pattern."""
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
     parameters = pika.ConnectionParameters(
-        host=RABBITMQ_HOST,
-        port=RABBITMQ_PORT,
+        host=RABBIT_HOST,
+        port=RABBIT_PORT,
         credentials=credentials,
         heartbeat=600,
         blocked_connection_timeout=300
@@ -55,7 +55,7 @@ def build_rabbitmq_channel(retries=30):
             channel = connection.channel()
             # Déclaration de la queue pour s'assurer qu'elle existe
             channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
-            print(f"[sim] Connecté à RabbitMQ sur {RABBITMQ_HOST}:{RABBITMQ_PORT}")
+            print(f"[sim] Connecté à RabbitMQ sur {RABBIT_HOST}:{RABBIT_PORT}")
             return connection, channel
         except pika.exceptions.AMQPConnectionError:
             print(f"[sim] RabbitMQ pas prêt (essai {i+1}/{retries}), retry dans 3s…")
@@ -85,7 +85,7 @@ def generate_measurement():
 
 
 def main():
-    print(f"[sim] Démarrage — RabbitMQ={RABBITMQ_HOST}:{RABBITMQ_PORT} queue={RABBITMQ_QUEUE} api={TARGET_API_URL} rate={RATE}/s")
+    print(f"[sim] Démarrage — RabbitMQ={RABBIT_HOST}:{RABBIT_PORT} queue={RABBITMQ_QUEUE} api={TARGET_API_URL} rate={RATE}/s")
 
     connection, channel = build_rabbitmq_channel()
 
@@ -108,47 +108,51 @@ def main():
         while True:
             m = generate_measurement()
 
-            # Publication dans RabbitMQ
+            # 1. Publication dans RabbitMQ
             try:
                 channel.basic_publish(
                     exchange='',
                     routing_key=RABBITMQ_QUEUE,
                     body=json.dumps(m),
                     properties=pika.BasicProperties(
-                        delivery_mode=2,  # Rendre le message persistant
+                        delivery_mode=2,
                         content_type='application/json'
                     )
                 )
             except pika.exceptions.AMQPError as e:
                 print(f"[sim] Erreur d'envoi RabbitMQ : {e}")
-                # Essai de reconnexion en cas de coupure
                 connection, channel = build_rabbitmq_channel()
 
-            # Post HTTP direct vers l'API
-                # Post HTTP direct vers l'API
-                try:
-                    # 1. On extrait l'ID du capteur pour l'URL
-                    sensor_id = m["sensor_external_id"]
+            # 2. POST HTTP vers l'API
+            try:
+                sensor_id = m["sensor_external_id"]
 
-                    # 2. On prépare la liste de métriques dans le format attendu par SensorMetricIn
-                    payload = [
-                        {
-                            "metric": m["metric"],
-                            "value": m["value"],
-                            "unit": m["unit"],
-                            "recorded_at": m["recorded_at"],
-                        }
-                    ]
+                payload = [
+                    {
+                        "metric": m["metric"],
+                        "value": m["value"],
+                        "unit": m["unit"],
+                        "recorded_at": m["recorded_at"],
+                    }
+                ]
 
-                    # 3. On appelle la bonne route FastApi
-                    requests.post(
-                        f"{TARGET_API_URL}/api/v1/sensors/{sensor_id}/metrics",
-                        json=payload,
-                        timeout=2,
+                response = requests.post(
+                    f"{TARGET_API_URL}/api/v1/sensors/{sensor_id}/metrics",
+                    json=payload,
+                    timeout=2,
+                )
+
+                if n % 20 == 0:
+                    print(
+                        f"[sim] POST {sensor_id} "
+                        f"status={response.status_code}"
                     )
-                except Exception as e:
-                    if n % 100 == 0:
-                        print(f"[sim] warning : API POST failed : {e}")
+
+            except Exception as e:
+                print(f"[sim] warning : API POST failed : {e}")
+
+            n += 1
+            time.sleep(interval)
 
     except KeyboardInterrupt:
         print("[sim] Arrêt du simulateur.")

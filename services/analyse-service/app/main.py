@@ -1,12 +1,19 @@
 import logging
 import pika
 import json
+import redis
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from .config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, EXCHANGE
+from .config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, EXCHANGE,  REDIS_HOST, REDIS_PORT, CACHE_TTL_SECONDS
 from .database import save_correlation, get_correlations
 from .models import CorrelationResponse
 from typing import List
+
+redis_client = redis.Redis(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    decode_responses=True,
+)
 
 log = logging.getLogger("analyse")
 logging.basicConfig(level=logging.INFO)
@@ -33,18 +40,35 @@ def init_consumer():
         def on_association(ch, method, properties, body):
             try:
                 msg = json.loads(body)
+
+                city = msg["city"]
+                zone = msg.get("zone")
+
                 save_correlation(
-                    city=msg["city"],
-                    zone=msg.get("zone"),
+                    city=city,
+                    zone=zone,
                     pollution_avg=msg["pollution_avg"],
                     traffic_avg=msg["traffic_avg"],
                     time_window=msg.get("time_window", ""),
                 )
-                log.info("Stored correlation: %s/%s", msg["city"], msg.get("zone"))
+
+                # Invalidation du cache Redis pour cette ville/zone
+                cache_pattern = f"correlations:{city}:{zone}:*"
+
+                for key in redis_client.scan_iter(match=cache_pattern):
+                    redis_client.delete(key)
+
+                log.info("CACHE INVALIDATED: %s", cache_pattern)
+                log.info("Stored correlation: %s/%s", city, zone)
+
                 ch.basic_ack(delivery_tag=method.delivery_tag)
+
             except Exception as exc:
                 log.exception("Error storing correlation: %s", exc)
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                ch.basic_nack(
+                    delivery_tag=method.delivery_tag,
+                    requeue=False
+                )
 
         ch.basic_consume(queue="q_association", on_message_callback=on_association)
         log.info("🔄 Analyse service consumer started")
@@ -86,6 +110,32 @@ def get_city_correlations(city: str, zone: str = None, limit: int = 50):
 
 @app.get("/correlations/{city}/{zone}", response_model=List[CorrelationResponse])
 def get_zone_correlations(city: str, zone: str, limit: int = 50):
-    """Récupère les corrélations pour une zone."""
-    correlations = get_correlations(city=city, zone=zone, limit=limit)
-    return correlations
+
+    cache_key = f"correlations:{city}:{zone}:{limit}"
+
+    cached = redis_client.get(cache_key)
+
+    if cached:
+        log.info("CACHE HIT: %s", cache_key)
+        return json.loads(cached)
+
+    log.info("CACHE MISS: %s", cache_key)
+
+    correlations = get_correlations(
+        city=city,
+        zone=zone,
+        limit=limit,
+    )
+
+    data = [
+        CorrelationResponse.model_validate(c).model_dump(mode="json")
+        for c in correlations
+    ]
+
+    redis_client.setex(
+        cache_key,
+        CACHE_TTL_SECONDS,
+        json.dumps(data),
+    )
+
+    return data
