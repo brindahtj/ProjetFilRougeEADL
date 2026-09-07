@@ -6,6 +6,7 @@ RABBITMQ_PORT = int(getenv("RABBITMQ_PORT", "5672"))
 EXCHANGE = getenv("RABBITMQ_EXCHANGE", "logs")
 TARGET_API_URL = getenv("TARGET_API_URL", "http://api-python:8000")
 RATE           = int(getenv("MEASUREMENTS_PER_SECOND", "10"))
+CONSTANTE=getenv("CONSTANTE", "1.0")
 
 # Thresholds for validation
 LATITUDE_MIN, LATITUDE_MAX = -90, 90
