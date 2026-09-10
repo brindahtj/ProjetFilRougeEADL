@@ -1,14 +1,18 @@
 networks:
   urbanhub-front:
     driver: bridge
+    name: urbanhub-front
   urbanhub-app:
     driver: bridge
-    internal: true      # aucun accès direct depuis l'extérieur du VPS
+    internal: true
+    name: urbanhub-app
   urbanhub-db:
     driver: bridge
-    internal: true      # base isolée, accessible uniquement par les services qui en ont besoin
+    internal: true
+    name: urbanhub-db
   urbanhub-monitoring:
     driver: bridge
+    name: urbanhub-monitoring
 services:
   postgres:
     image: postgres:16
@@ -74,6 +78,7 @@ services:
     networks: [urbanhub-app, urbanhub-db]
 
   ingestion:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-ingestion-service:latest
     build:
       context: ./services/ingestion-service
       dockerfile: Dockerfile
@@ -97,6 +102,7 @@ services:
     networks: [urbanhub-app, urbanhub-front]
 
   validation:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-validation-service:latest
     build:
       context: ./services/validation-service
       dockerfile: Dockerfile
@@ -116,6 +122,7 @@ services:
     networks: [urbanhub-app]
 
   notification:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-notification-service:latest
     build:
       context: ./services/notification-service
       dockerfile: Dockerfile
@@ -128,6 +135,7 @@ services:
     networks: [urbanhub-app, urbanhub-front]   # front pour sortir vers le CSU externe
 
   association:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-association-service:latest
     build:
       context: ./services/association-service
       dockerfile: Dockerfile
@@ -139,6 +147,7 @@ services:
     command: python -m src.subcriber
     networks: [urbanhub-app]
   analyse:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-analyse-service:latest
     build:
       context: ./services/analyse-service
       dockerfile: Dockerfile
@@ -156,6 +165,7 @@ services:
     networks: [urbanhub-app, urbanhub-db]
 
   detection:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-detection-service:latest
     build:
       context: ./services/detection-service
       dockerfile: Dockerfile
@@ -170,6 +180,7 @@ services:
     networks: [urbanhub-app]
     command: python -m src.consumer
   referential:
+    image:  ghcr.io/brindahtj/projetfilrougeeadl-referential-service:latest
     build:
       context: ./services/referential-service
       dockerfile: Dockerfile
@@ -252,8 +263,30 @@ services:
       - "4317:4317"   # OTLP gRPC (utilisé par ingestion-service)
 
     networks: [urbanhub-monitoring, urbanhub-app]
+  terraform:
+    build:
+      context: ./terraform
+    environment:
+    - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+    - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}  
+    volumes:
+      - ./terraform:/terraform
+      - ./ansible:/ansible      # local_file ecrit l inventaire ici
+      - ~/.ssh/id_ed25519.pub:/root/.ssh/id_ed25519.pub:ro
+      - ${XDG_RUNTIME_DIR:-/run/user/1034}/docker.sock:/var/run/docker.sock
+    working_dir: /terraform
+    networks: [urbanhub-front]
 
 
+  ansible:
+    build:
+      context: ./ansible
+    volumes:
+      - ./ansible:/ansible
+      - ~/.ssh:/root/.ssh:ro
+    working_dir: /ansible
+    networks: [urbanhub-app]
 volumes:
   postgres_data:
   rabbitmq_data:
